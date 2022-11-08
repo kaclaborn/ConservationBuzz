@@ -8,6 +8,8 @@
 # User-specific files
 .Ruserdata
 Initial_corpus/
+data/corpora
+data/outputs
 
 # Example code in package build process
 *-Ex.R
