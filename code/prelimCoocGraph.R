@@ -145,7 +145,7 @@ coocGraph3Tier <- function(dat = NULL, coocTerm = NULL, sigval = 3.8) {
   counts <- t(dat) %*% dat
   
   # Calculate statistics for coocTerm, keeping all terms that are significant at a level of 0.05
-  coocs <- data.frame(sig = calculateCoocStatistics(coocTerm, dat, measure = "LOGLIK")) %>%
+  coocs <- data.frame(sig = calculateCoocStatistics(coocTerm, dat, measure = "DICE")) %>%
     mutate(word = rownames(.)) %>%
     filter(sig>=sigval)
   
@@ -179,7 +179,7 @@ coocGraph3Tier <- function(dat = NULL, coocTerm = NULL, sigval = 3.8) {
     
     # calling up the co-occurrence calculation for term i from the search words co-occurrences
     newCoocTerm <- coocs$word[i]
-    coocs2 <- data.frame(sig = calculateCoocStatistics(newCoocTerm, dat, measure = "LOGLIK")) %>%
+    coocs2 <- data.frame(sig = calculateCoocStatistics(newCoocTerm, dat, measure = "DICE")) %>%
       mutate(word = rownames(.)) %>%
       filter(sig>=sigval)
     
@@ -203,7 +203,7 @@ coocGraph3Tier <- function(dat = NULL, coocTerm = NULL, sigval = 3.8) {
       # calling up the co-occurrence calculation for term j from the search words co-occurrences
       newCoocTerm2 <- coocs2$word[j]
       
-      coocs3 <- data.frame(sig = calculateCoocStatistics(newCoocTerm2, dat, measure = "LOGLIK")) %>%
+      coocs3 <- data.frame(sig = calculateCoocStatistics(newCoocTerm2, dat, measure = "DICE")) %>%
         mutate(word = rownames(.)) %>%
         filter(sig>=sigval)
     
@@ -285,18 +285,17 @@ wordcount_a_2020 <-
   dfm(., remove_padding = TRUE) %>%
   textstat_frequency(., n = 4000)
   
+
 DTM_a_2020 <- subsetDTM(dat = docs_a, years = 2020)
 
-# coocGraph_a_2020 <- 
-#   DTM_a_2020 %>%
-#   coocGraph(dat = ., numCoocs = 150, coocTerm = as.character(wordcount_a_2020[1,1]))
 coocGraph_a_2020 <- 
   DTM_a_2020 %>%
-  coocGraph(dat = ., numCoocs = 200, coocTerm = "conservation")
+  coocGraph3Tier(dat = ., coocTerm = "conservation", sigval = 0.03) %>%
+  distinct()
 
 
-conductivity_a_2020 <- data.frame(conductivity = betweenness(graph.data.frame(coocGraph_a_2020, directed = T)),
-                                  degree = degree(graph.data.frame(coocGraph_a_2020, directed = T))) %>%
+conductivity_a_2020 <- data.frame(conductivity = estimate_betweenness(graph.data.frame(coocGraph_a_2020, directed = T), cutoff = 2),
+                                  degree = degree(graph.data.frame(coocGraph_a_2020, directed = T), mode = "total")) %>%
   mutate(node = rownames(.))
 
 
@@ -307,73 +306,6 @@ nodeFreq_a_2020 <- data.frame(node = colnames(DTM_a_2020),
 
 node_attributes_a_2020 <- 
   coocGraph_a_2020 %>%
-  mutate(link1 = paste(from, to, sep = " -"),
-         link2 = paste(to, from, sep = " -")) %>%
-  pivot_longer(cols = c(link1, link2), values_to = "link") %>%
-  select(link, sig, coocFreq) %>%
-  distinct() %>%
-  mutate(node = stringr::str_extract(link, ".*.(?=\\s-)")) %>%
-  left_join(nodeFreq_a_2020, by = "node") %>%
-  mutate(consensus = ifelse(coocFreq/freq>=0.1, 1, 0)) %>% # if co-occurrence exists at least 10% of the time the focal node is used, counts as "consensus"
-  group_by(node) %>%
-  summarise(consensus = sum(consensus) / length(node),
-            density = length(node)) %>%
-  left_join(nodeFreq_a_2020, by = "node") %>%
-  left_join(conductivity_a_2020, by = "node")
-  # filter(conductivity!=0) # remove all nodes that only exist on the edge of the semantic network of interest
-
-coocGraph_a_2020_filtered <- 
-  coocGraph_a_2020 %>% 
-  left_join(node_attributes_a_2020, by = c("from" = "node"))
-
-
-export(coocGraph_a_2020, 'data/outputs/coocGraph_a_2020.csv')
-export(node_attributes_a_2020, 'data/outputs/node_attributes_a_2020.csv')
-# export(nodeFreq_a_2020, 'data/outputs/nodeFreq_a_2020.csv')
-
-
-quantiles_a_2020 <- as.data.frame(cbind(quantile = c("10%", "20%", "30%", "35%", "40%", "50%", "60%", "65%", "70%", "80%", "90%"),
-                                        consensus = quantile(node_attributes_a_2020$consensus, c(0.1, 0.2, 0.3, 0.35, 0.4, 0.5, 0.6, 0.65, 0.7, 0.8, 0.9)),
-                                        degree = quantile(node_attributes_a_2020$degree, c(0.1, 0.2, 0.3, 0.35, 0.4, 0.5, 0.6, 0.65, 0.7, 0.8, 0.9)),
-                                        conductivity = quantile(node_attributes_a_2020$conductivity, c(0.1, 0.2, 0.3, 0.35, 0.4, 0.5, 0.6, 0.65, 0.7, 0.8, 0.9))))
-
-placeholders_a_2020 <- 
-  node_attributes_a_2020 %>%
-  filter(consensus<=quantiles_a_2020$consensus[quantiles_a_2020$quantile=="30%"] & 
-           degree>=quantiles_a_2020$degree[quantiles_a_2020$quantile=="70%"] & 
-           conductivity>=quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="70%"])
-
-buzzwords_a_2020 <- 
-  node_attributes_a_2020 %>%
-  filter(consensus<=quantiles_a_2020$consensus[quantiles_a_2020$quantile=="30%"] & 
-           degree<=quantiles_a_2020$degree[quantiles_a_2020$quantile=="70%"] & 
-           conductivity>=quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="70%"])
-
-
-# ---- Test 3 tier coocGraph method of developing network ----
-
-DTM_a_2020 <- subsetDTM(dat = docs_a, years = 2020)
-
-testCoocGraph3Tier <- 
-  DTM_a_2020 %>%
-  coocGraph3Tier(dat = ., coocTerm = "conservation", sigval = 10) %>%
-  distinct()
-
-
-testCoocGraph3Tier[testCoocGraph3Tier$from=="resilience",]
-
-conductivity_a_2020 <- data.frame(conductivity = estimate_betweenness(graph.data.frame(testCoocGraph3Tier, directed = T), cutoff = 2),
-                                  degree = degree(graph.data.frame(testCoocGraph3Tier, directed = T), mode = "total")) %>%
-  mutate(node = rownames(.))
-
-
-nodeFreq_a_2020 <- data.frame(node = colnames(DTM_a_2020),
-                              freq = diag(t(DTM_a_2020) %*% DTM_a_2020)) %>%
-  mutate(node = stringr::str_replace_all(node, "_", " "))
-
-
-node_attributes_a_2020 <- 
-  testCoocGraph3Tier %>%
   mutate(link1 = paste(from, to, sep = " -"),
          link2 = paste(to, from, sep = " -")) %>%
   pivot_longer(cols = c(link1, link2), values_to = "link") %>%
@@ -410,16 +342,15 @@ quantiles_a_2020 <- as.data.frame(cbind(quantile = paste0(seq(0, 100, by = 5), "
 
 placeholders_a_2020 <- 
   node_attributes_a_2020 %>%
-  filter(consensus<=quantiles_a_2020$freq[quantiles_a_2020$quantile=="10%"] & 
-           degree>=quantiles_a_2020$degree[quantiles_a_2020$quantile=="90%"] & 
-           conductivity>=quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="90%"])
+  filter(consensus<=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="20%"]) & 
+           degree>=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="80%"]) & 
+           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="80%"]))
 
 buzzwords_a_2020 <- 
   node_attributes_a_2020 %>%
-  filter(consensus<=quantiles_a_2020$consensus[quantiles_a_2020$quantile=="10%"] & 
-           degree<=quantiles_a_2020$degree[quantiles_a_2020$quantile=="90%"] & 
-           conductivity>=quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="90%"])
-
+  filter(consensus<=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="20%"]) & 
+           degree<=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="80%"]) & 
+           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="80%"]))
 
 
 # Compare 3 tier coocGraphs using different starting focal terms
