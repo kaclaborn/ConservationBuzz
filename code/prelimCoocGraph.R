@@ -47,97 +47,97 @@ subsetDTM <- function(dat = NULL, years = NULL) {
 
 
 
-# -- Function to create a co-occurrence network, ready to be input to ORA
-coocGraph <- function(dat = NULL, numCoocs = 200, coocTerm = NULL) {
-  
-  # Define parameters for the central co-occurrence term of interest & number of co-occurrences to include in analysis
-  coocTerm <- coocTerm
-  numberOfCoocs <- numCoocs
-  counts <- t(dat) %*% dat
-  
-  # Calculate statistics for coocTerm 
-  coocs <- calculateCoocStatistics(coocTerm, dat, measure = "LOGLIK")
-  
-  # Display the main terms (n = numberOfCoocs)
-  print(coocs[1:numberOfCoocs])
-  
-  
-  # Create dummy data frame for results 
-  resultGraph <- data.frame(from = character(), 
-                            to = character(), 
-                            sig = numeric(0))
-  
-  
-  # Structure of the temporary graph object is equal to that of the resultGraph
-  tmpGraph <- data.frame(from = character(), to = character(), sig = numeric(0))
-  
-  # Fill the data.frame to produce the correct number of lines
-  tmpGraph[1:numberOfCoocs, 3] <- coocs[1:numberOfCoocs]
-  # Entry of the search word into the first column in all lines
-  tmpGraph[, 1] <- coocTerm
-  # Entry of the co-occurrences into the second column of the respective line
-  tmpGraph[, 2] <- names(coocs)[1:numberOfCoocs]
-  # Set the significances
-  tmpGraph[, 3] <- coocs[1:numberOfCoocs]
-  
-  # attach the triples to resultGraph
-  resultGraph <- rbind(resultGraph, tmpGraph)
-  
-  
-  # iterate over the most significant numberOfCoocs co-occurrences search term
-  for (i in 1:numberOfCoocs){
-    
-    # calling up the co-occurrence calculation for term i from the search words co-occurrences
-    newCoocTerm <- names(coocs)[i]
-    coocs2 <- calculateCoocStatistics(newCoocTerm, dat, measure = "LOGLIK")
-    
-    # print the co-occurrences
-    coocs2[1:10]
-    
-    # structure of the temporary graph object
-    tmpGraph <- data.frame(from = character(), to = character(), sig = numeric(0))
-    tmpGraph[1:numberOfCoocs, 3] <- coocs2[1:numberOfCoocs]
-    tmpGraph[, 1] <- newCoocTerm
-    tmpGraph[, 2] <- names(coocs2)[1:numberOfCoocs]
-    tmpGraph[, 3] <- coocs2[1:numberOfCoocs]
-    
-    # append the result to the result graph
-    resultGraph <- rbind(resultGraph, tmpGraph[2:length(tmpGraph[, 1]), ])
-  }
+# # -- Function to create a co-occurrence network, ready to be input to ORA
+# coocGraph <- function(dat = NULL, numCoocs = 200, coocTerm = NULL) {
+#   
+#   # Define parameters for the central co-occurrence term of interest & number of co-occurrences to include in analysis
+#   coocTerm <- coocTerm
+#   numberOfCoocs <- numCoocs
+#   counts <- t(dat) %*% dat
+#   
+#   # Calculate statistics for coocTerm 
+#   coocs <- calculateCoocStatistics(coocTerm, dat, measure = "LOGLIK")
+#   
+#   # Display the main terms (n = numberOfCoocs)
+#   print(coocs[1:numberOfCoocs])
+#   
+#   
+#   # Create dummy data frame for results 
+#   resultGraph <- data.frame(from = character(), 
+#                             to = character(), 
+#                             sig = numeric(0))
+#   
+#   
+#   # Structure of the temporary graph object is equal to that of the resultGraph
+#   tmpGraph <- data.frame(from = character(), to = character(), sig = numeric(0))
+#   
+#   # Fill the data.frame to produce the correct number of lines
+#   tmpGraph[1:numberOfCoocs, 3] <- coocs[1:numberOfCoocs]
+#   # Entry of the search word into the first column in all lines
+#   tmpGraph[, 1] <- coocTerm
+#   # Entry of the co-occurrences into the second column of the respective line
+#   tmpGraph[, 2] <- names(coocs)[1:numberOfCoocs]
+#   # Set the significances
+#   tmpGraph[, 3] <- coocs[1:numberOfCoocs]
+#   
+#   # attach the triples to resultGraph
+#   resultGraph <- rbind(resultGraph, tmpGraph)
+#   
+#   
+#   # iterate over the most significant numberOfCoocs co-occurrences search term
+#   for (i in 1:numberOfCoocs){
+#     
+#     # calling up the co-occurrence calculation for term i from the search words co-occurrences
+#     newCoocTerm <- names(coocs)[i]
+#     coocs2 <- calculateCoocStatistics(newCoocTerm, dat, measure = "LOGLIK")
+#     
+#     # print the co-occurrences
+#     coocs2[1:10]
+#     
+#     # structure of the temporary graph object
+#     tmpGraph <- data.frame(from = character(), to = character(), sig = numeric(0))
+#     tmpGraph[1:numberOfCoocs, 3] <- coocs2[1:numberOfCoocs]
+#     tmpGraph[, 1] <- newCoocTerm
+#     tmpGraph[, 2] <- names(coocs2)[1:numberOfCoocs]
+#     tmpGraph[, 3] <- coocs2[1:numberOfCoocs]
+#     
+#     # append the result to the result graph
+#     resultGraph <- rbind(resultGraph, tmpGraph[2:length(tmpGraph[, 1]), ])
+#   }
+# 
+#   coocFreq <- numeric(0)
+#   
+#   for(i in 1:nrow(resultGraph)) {
+#     coocFreq[i] <- counts[resultGraph$from[i], resultGraph$to[i]]
+#   }
+#   
+#   resultGraph <- cbind(resultGraph, coocFreq)
+#   
+#   # post-process output resultGraph data frame, readying for visualization
+#   resultGraph <- resultGraph %>%
+#     mutate(from = stringr::str_replace_all(from, "_", " "),
+#            to = stringr::str_replace_all(to, "_", " "))
+#   
+#   return(resultGraph)
+#   
+# }
+# 
+# counts <- t(DTM_a_2020) %*% DTM_a_2020
+# coocs <- data.frame(sig = calculateCoocStatistics("conservation", DTM_a_2020, measure = "LOGLIK")) %>%
+#   mutate(word = rownames(.)) %>%
+#   filter(sig>=3.8)
+# 
+# coocFreq <- data.frame(from = character(),
+#                        to = character(),
+#                        coocFreq = numeric(0))
+# 
+# for(i in 1:nrow(coocs)) {
+#   coocFreq[i, "from"] <- "conservation"
+#   coocFreq[i, "to"] <- coocs$word[i]
+#   coocFreq[i, "coocFreq"] <- counts["conservation", coocs$word[i]]
+# }
 
-  coocFreq <- numeric(0)
-  
-  for(i in 1:nrow(resultGraph)) {
-    coocFreq[i] <- counts[resultGraph$from[i], resultGraph$to[i]]
-  }
-  
-  resultGraph <- cbind(resultGraph, coocFreq)
-  
-  # post-process output resultGraph data frame, readying for visualization
-  resultGraph <- resultGraph %>%
-    mutate(from = stringr::str_replace_all(from, "_", " "),
-           to = stringr::str_replace_all(to, "_", " "))
-  
-  return(resultGraph)
-  
-}
-
-counts <- t(DTM_a_2020) %*% DTM_a_2020
-coocs <- data.frame(sig = calculateCoocStatistics("conservation", DTM_a_2020, measure = "LOGLIK")) %>%
-  mutate(word = rownames(.)) %>%
-  filter(sig>=3.8)
-
-coocFreq <- data.frame(from = character(),
-                       to = character(),
-                       coocFreq = numeric(0))
-
-for(i in 1:nrow(coocs)) {
-  coocFreq[i, "from"] <- "conservation"
-  coocFreq[i, "to"] <- coocs$word[i]
-  coocFreq[i, "coocFreq"] <- counts["conservation", coocs$word[i]]
-}
-
-
+# -- Function to create a co-occurrence network, using a three-tiered approach to co-occurrence identification
 coocGraph3Tier <- function(dat = NULL, coocTerm = NULL, sigval = 3.8) {
   
   # Define parameters for the central co-occurrence term of interest & number of co-occurrences to include in analysis
@@ -318,7 +318,8 @@ node_attributes_a_2020 <-
   summarise(consensus = sum(consensus) / length(node),
             density = length(node)) %>%
   left_join(nodeFreq_a_2020, by = "node") %>%
-  left_join(conductivity_a_2020, by = "node")
+  left_join(conductivity_a_2020, by = "node") %>%
+  filter(conductivity!=0)
 
 coocGraph_a_2020_filtered <- 
   coocGraph_a_2020 %>% 
@@ -342,15 +343,21 @@ quantiles_a_2020 <- as.data.frame(cbind(quantile = paste0(seq(0, 100, by = 5), "
 
 placeholders_a_2020 <- 
   node_attributes_a_2020 %>%
-  filter(consensus<=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="20%"]) & 
-           degree>=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="80%"]) & 
-           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="80%"]))
+  filter(consensus<=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="50%"]) & 
+           degree>=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="50%"]) & 
+           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="50%"]))
 
 buzzwords_a_2020 <- 
   node_attributes_a_2020 %>%
-  filter(consensus<=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="20%"]) & 
-           degree<=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="80%"]) & 
-           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="80%"]))
+  filter(consensus<=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="45%"]) & 
+           degree<=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="45%"]) & 
+           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="55%"]))
+
+standard_a_2020 <- 
+  node_attributes_a_2020 %>%
+  filter(consensus>=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="65%"]) & 
+           degree>=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="65%"]) & 
+           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="65%"]))
 
 
 # Compare 3 tier coocGraphs using different starting focal terms
