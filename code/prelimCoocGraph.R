@@ -18,24 +18,24 @@ subsetDTM <- function(dat = NULL, years = NULL) {
   # filter data & turn into corpus
   dat <- dat %>% filter(year%in%years)
   corp <- corpus(dat)
-  sentences <- corpus_reshape(corp, to = "sentences")
+  # sentences <- corpus_reshape(corp, to = "sentences")
   
   # tokenize
-  sentence_tokens <- sentences %>% 
+ tokens <- corp %>%
     tokens(remove_punct = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) %>% 
     tokens_tolower() %>% 
     tokens_remove(pattern = stopwords_extended, padding = T) %>%
     tokens_replace(thesaurus$token, thesaurus$lemma, valuetype = "fixed")
   
   # identify candidate collocations
-  collocations <- textstat_collocations(sentence_tokens, min_count = 5)
+  collocations <- textstat_collocations(tokens, min_count = 5)
   collocations <- collocations[1:500, ]
   
-  sentence_tokens <- tokens_compound(sentence_tokens, collocations)
+  tokens <- tokens_compound(tokens, collocations)
   
   
   # create DTM, prune vocabulary and set binary values for presence/absence of types
-  binDTM <- sentence_tokens %>% 
+  binDTM <- tokens %>% 
     tokens_remove("") %>%
     dfm() %>% 
     dfm_trim(min_docfreq = 0.002, max_docfreq = 1, docfreq_type = "prop") %>%  # only include tokens that exist across at least 1% of documents
@@ -287,10 +287,10 @@ wordcount_a_2020 <-
   
 
 DTM_a_2020 <- subsetDTM(dat = docs_a, years = 2020)
-
+# counts <- t(DTM_a_2020) %*% DTM_a_2020
 coocGraph_a_2020 <- 
   DTM_a_2020 %>%
-  coocGraph3Tier(dat = ., coocTerm = "conservation", sigval = 0.03) %>%
+  coocGraph3Tier(dat = ., coocTerm = "conservation", sigval = 0.3) %>%
   distinct()
 
 

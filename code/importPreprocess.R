@@ -72,12 +72,24 @@ docs_a <- import_a %>%
          "stage" = "Publication Stage") %>%
   select(title, year, journal, volume, issue, text, keywords, type, stage, citations) %>%
   filter(text!="[No abstract available]",
-         type!="Erratum") %>%
+         type!="Erratum", 
+         type!="Retracted") %>%
   # NOTE: may need to filter more article types
   mutate(journal = ifelse(grepl("Conservation Biology", journal, ignore.case = T)==T, "Conservation Biology", 
                           ifelse(grepl("Global Change Biology", journal, ignore.case = T)==T, "Global Change Biology", journal)),
          text = stringr::str_replace_all(text, ' Â©.*', ''), # remove back matter from abstracts
+         text = stringr::str_replace_all(text, '©.*', ''), # remove back matter from abstracts
+         text = stringr::str_replace_all(text, ' Conservation Biology published.*', ''), # remove back matter from abstracts
+         text = stringr::str_replace_all(text, ' Copyright.*', ''), # remove back matter from abstracts
+         text = stringr::str_replace_all(text, ' Global Change Biology published.*', ''), # remove back matter from abstracts
+         text = stringr::str_replace_all(text, '\\(C\\) 2000 Elsevier.*', ''), # remove back matter from Elsevier abstracts from year 2000
+         text = stringr::str_replace_all(text, 'Published by Elsevier.*', ''), # remove back matter from Elsevier abstracts
          text = stringr::str_replace_all(text, ' This article is categorized.*', ''), # remove back matter from Wiley Climate Change abstracts
+         text = stringr::str_replace_all(text, '2019 John Wiley & Sons Ltd', ''), # specific back matter cleaning
+         text = stringr::str_replace_all(text, '2016 Wiley Periodicals, Inc.', ''), # specific back matter cleaning
+         text = stringr::str_replace_all(text, '2002 Elsevier Science.*', ''), # specific back matter cleaning
+         text = stringr::str_replace_all(text, '2001 Elsevier Science.*', ''), # specific back matter cleaning
+         text = stringr::str_replace_all(text, '� 2016 Elsevier Ltd', ''), # specific back matter cleaning
          text = stringr::str_replace_all(text, '\"\"', ''), # general cleaning
          text = stringr::str_replace_all(text, 'Â', ''), # general cleaning
          text = stringr::str_replace_all(text, "'", ''), # general cleaning

@@ -21,14 +21,25 @@ thesaurus <- rbind(hash_lemmas, add_to_lemma)
 
 # ---- Stopwords ----
 
-add_to_stopwords <- c("accurately", "additionally", "adequately", "alternatively", "approximately", 
-                      "broadly", "ca", "cm", "commonly", "consistent", "consistently", "directly",
-                      "effectively", "es", "ess", "explicitly", "finally", "frequently", "generally", "gi", 
-                      "globally", "greatly", "ha", "heavily", "highly", "increasingly", "î", 
-                      "kg", "km", "km2", "largely", "locally", "lt", "ph", "positively", "potentially", 
-                      "predominantly", "previously", "primarily", "r", "rapidly", "rarely", "recently",
-                      "significantly", "simultaneously", "slightly", "spatially", "specifically", "strongly", 
-                      "substantially", "typically", "widely") 
-# should I remove all "-ly" adverbs? Or, could lemmatize them? Or, leave them alone
+add_to_stopwords <- c(# "-ly" adverbs
+                      "accurately", "additionally", "adequately", "alternatively", "approximately", 
+                      "broadly", "commonly", "consistent", "consistently", "directly",
+                      "effectively", "explicitly", "finally", "frequently", "generally",  
+                      "globally", "greatly", "heavily", "highly", "increasingly",  
+                      "largely", "locally", "positively", "potentially", 
+                      "predominantly", "previously", "primarily", "rapidly", "rarely", "recently",
+                      "significantly", "simultaneously", "slightly", "spatially", "specifically", 
+                      "strongly", "substantially", "typically", "widely",
+                      
+                      # abbreviations
+                      "ca", "cm", "co2", "es", "ess", "gi", "ha", "î", "kg", "km", "km2", "lt", "pa", "ph", "r", 
+                      
+                      # highly frequent, non-discriminating words
+                      "increase", "multiple", "vary", "similar", "lack", "datum",
+                      
+                      # highly frequent descriptors of findings or methods in generic terms
+                      "result", "suggest", "show", "find", "significant", "examine", "investigate", "demonstrate", "finding",
+                      "highlight", "consider", "explore", "conduct", "reveal", "report", "explain", "effect", "affect") 
+
 
 stopwords_extended <- c(stopwords(source = "smart"), add_to_stopwords)
