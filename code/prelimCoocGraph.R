@@ -306,14 +306,17 @@ nodeFreq_a_2020 <- data.frame(node = colnames(DTM_a_2020),
 
 node_attributes_a_2020 <- 
   coocGraph_a_2020 %>%
-  mutate(link1 = paste(from, to, sep = " -"),
-         link2 = paste(to, from, sep = " -")) %>%
-  pivot_longer(cols = c(link1, link2), values_to = "link") %>%
-  select(link, sig, coocFreq) %>%
+  # mutate(link1 = paste(from, to, sep = " -"),
+  #        link2 = paste(to, from, sep = " -")) %>%
+  # pivot_longer(cols = c(link1, link2), values_to = "link") %>%
+  # select(link, sig, coocFreq) %>%
   distinct() %>%
-  mutate(node = stringr::str_extract(link, ".*.(?=\\s-)")) %>%
-  left_join(nodeFreq_a_2020, by = "node") %>%
-  mutate(consensus = ifelse(coocFreq/freq>=0.1, 1, 0)) %>% # if co-occurrence exists at least 10% of the time the focal node is used, counts as "consensus"
+  # mutate(node = stringr::str_extract(link, ".*.(?=\\s-)")) %>%
+  left_join(nodeFreq_a_2020, by = c("from" = "node")) %>%
+  left_join(nodeFreq_a_2020, by = c("to" = "node")) %>%
+  mutate(lower.freq = ifelse(freq.x<freq.y, freq.x, freq.y)) %>%
+  mutate(consensus = ifelse(coocFreq/lower.freq>=0.33, 1, 0)) %>% # if co-occurrence exists at least 10% of the time the focal node is used, counts as "consensus"
+  rename("node" = "from") %>%
   group_by(node) %>%
   summarise(consensus = sum(consensus) / length(node),
             density = length(node)) %>%
@@ -343,21 +346,59 @@ quantiles_a_2020 <- as.data.frame(cbind(quantile = paste0(seq(0, 100, by = 5), "
 
 placeholders_a_2020 <- 
   node_attributes_a_2020 %>%
-  filter(consensus<=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="50%"]) & 
-           degree>=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="50%"]) & 
-           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="50%"]))
+  filter(consensus<=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="10%"]) & 
+           degree>=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="90%"]) & 
+           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="90%"]))
 
 buzzwords_a_2020 <- 
   node_attributes_a_2020 %>%
-  filter(consensus<=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="45%"]) & 
-           degree<=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="45%"]) & 
-           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="55%"]))
+  filter(consensus<=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="20%"]) & 
+           degree<=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="20%"]) & 
+           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="80%"]))
 
 standard_a_2020 <- 
   node_attributes_a_2020 %>%
-  filter(consensus>=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="65%"]) & 
-           degree>=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="65%"]) & 
-           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="65%"]))
+  filter(consensus>=as.numeric(quantiles_a_2020$consensus[quantiles_a_2020$quantile=="90%"]) & 
+           degree>=as.numeric(quantiles_a_2020$degree[quantiles_a_2020$quantile=="90%"]) & 
+           conductivity>=as.numeric(quantiles_a_2020$conductivity[quantiles_a_2020$quantile=="90%"]))
+
+
+# ---- Test out parallel computing for create co-occurrence graphs per year ----
+
+library(parallel)
+detectCores()
+
+# Identify years to run
+years <- 2000:2021
+
+# Create DTM and 
+DTM_byyear <- mclapply(years, function(i) {
+    
+    subsetDTM(dat = docs_a, years = i)
+  
+    }, 
+  mc.cores = 22)
+
+
+for(i in 1:length(DTM_byyear)) {
+  assign(paste("DTM_a_", years[i], sep = ""), 
+         DTM_byyear[[i]])
+}
+
+
+coocGraph_byyear <- mclapply(years, function(i) {
+  
+  coocGraph3Tier(dat = get(paste("DTM_a_", i, sep = "")), 
+                        coocTerm = "conservation", 
+                        sigval = 0.03)
+  
+})
+
+for(i in 1:length(coocGraph_byyear)) {
+  assign(paste("coocGraph_a_", years[i], sep = ""), 
+         coocGraph_byyear[[i]])
+}
+
 
 
 # Compare 3 tier coocGraphs using different starting focal terms
