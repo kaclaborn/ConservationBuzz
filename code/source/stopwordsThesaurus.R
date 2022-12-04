@@ -35,11 +35,13 @@ add_to_stopwords <- c(# "-ly" adverbs
                       "ca", "cm", "co2", "es", "ess", "gi", "ha", "î", "kg", "km", "km2", "lt", "pa", "ph", "r", 
                       
                       # highly frequent, non-discriminating words
-                      "increase", "multiple", "vary", "similar", "lack", "datum",
+                      "increase", "decrease", "reduce", "multiple", "vary", "similar", "lack", "datum", "low", "high", "remain", 
+                      "decline", "due", "include", "exclude", "potential", "apply", "paper",
                       
                       # highly frequent descriptors of findings or methods in generic terms
                       "result", "suggest", "show", "find", "significant", "examine", "investigate", "demonstrate", "finding",
-                      "highlight", "consider", "explore", "conduct", "reveal", "report", "explain", "effect", "affect") 
+                      "highlight", "consider", "explore", "conduct", "reveal", "report", "explain", "effect", "affect", "identify",
+                      "provide", "assess", "determine", "compare", "observe") 
 
 
 stopwords_extended <- c(stopwords(source = "smart"), add_to_stopwords)
