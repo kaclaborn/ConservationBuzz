@@ -399,8 +399,8 @@ node_attributes_a_2020 <-
   summarise(consensus = sum(consensus) / length(node),
             density = length(node)) %>%
   left_join(nodeFreq_a_2020, by = "node") %>%
-  left_join(conductivity_a_2020, by = "node") %>%
-  filter(conductivity!=0)
+  left_join(conductivity_a_2020, by = "node")
+  # filter(conductivity!=0)
 
 placeholders_a_2020 <-
   node_attributes_a_2020 %>%
@@ -410,14 +410,15 @@ placeholders_a_2020 <-
 
 buzzwords_a_2020 <-
   node_attributes_a_2020 %>%
-  filter(consensus<median(node_attributes_a_2020$consensus)-0.1*sd(node_attributes_a_2020$consensus) &
-           degree<median(node_attributes_a_2020$degree)-0.1*sd(node_attributes_a_2020$degree) &
-           conductivity>median(node_attributes_a_2020$conductivity)+0.1*sd(node_attributes_a_2020$conductivity))
+  filter(consensus<median(node_attributes_a_2020$consensus) &
+           degree<median(node_attributes_a_2020$degree) &
+           conductivity>median(node_attributes_a_2020$conductivity))
 
-# Compare 3 tier coocGraphs using different starting focal terms
+sort(rownames(t(DTM_a_2004) %*% DTM_a_2004))
+
+# ---- Compare coocGraphs across years ----
 
 coocGraph_compare <- data.frame(focal_node = character(), 
-                                n_cooc = numeric(0),
                                 n_nodes = numeric(0),
                                 n_placeholders = numeric(0),
                                 n_buzzwords = numeric(0),
@@ -428,88 +429,80 @@ coocGraph_compare <- data.frame(focal_node = character(),
                                 buzzwords_1_10 = character())
 
 
-for(i in wordcount_a_2020$feature[1:5]){
-  
-  year <- 2020
-  cooc <- i
-  nCooc <- 20
+for(i in years_output){
   
   
-  DTM_a <- subsetDTM(dat = docs_a, years = year)
+  DTM <- get(paste("DTM_a_", i, sep = ""))
+  coocGraph <- get(paste("coocGraph_a_", i, sep = ""))
   
-  resultGraph3Tier_a <- 
-    DTM_a %>%
-    coocGraph3Tier(dat = ., numCoocs = nCooc, coocTerm = cooc) %>%
-    distinct()
-  
-  conductivity_a <- data.frame(conductivity = betweenness(graph.data.frame(resultGraph3Tier_a, directed = T)),
-                                    degree = degree(graph.data.frame(resultGraph3Tier_a, directed = T))) %>%
+  conductivity <- data.frame(conductivity = betweenness(graph.data.frame(coocGraph, directed = F)),
+                                    degree = degree(graph.data.frame(coocGraph, directed = F))) %>%
     mutate(node = rownames(.))
   
   
-  nodeFreq_a <- data.frame(node = colnames(DTM_a),
-                                freq = diag(t(DTM_a) %*% DTM_a)) %>%
+  nodeFreq <- data.frame(node = colnames(DTM),
+                                freq = diag(t(DTM) %*% DTM)) %>%
     mutate(node = stringr::str_replace_all(node, "_", " "))
   
   
-  node_attributes_a <- 
-    resultGraph3Tier_a %>%
-    mutate(link1 = paste(from, to, sep = " -"),
-           link2 = paste(to, from, sep = " -")) %>%
-    pivot_longer(cols = c(link1, link2), values_to = "link") %>%
-    select(link, sig, coocFreq) %>%
+  node_attributes <- 
+    coocGraph %>%
     distinct() %>%
-    mutate(node = stringr::str_extract(link, ".*.(?=\\s-)")) %>%
-    left_join(nodeFreq_a_2020, by = "node") %>%
-    mutate(consensus = ifelse(coocFreq/freq>=0.1, 1, 0)) %>% # if co-occurrence exists at least 10% of the time the focal node is used, counts as "consensus"
+    # mutate(node = stringr::str_extract(link, ".*.(?=\\s-)")) %>%
+    left_join(nodeFreq, by = c("from" = "node")) %>%
+    left_join(nodeFreq, by = c("to" = "node")) %>%
+    mutate(lower.freq = ifelse(freq.x<freq.y, freq.x, freq.y)) %>%
+    mutate(consensus = ifelse(coocFreq/lower.freq>=0.33, 1, 0)) %>% # if co-occurrence exists at least 10% of the time the focal node is used, counts as "consensus"
+    rename("node" = "from") %>%
     group_by(node) %>%
     summarise(consensus = sum(consensus) / length(node),
               density = length(node)) %>%
-    left_join(nodeFreq_a_2020, by = "node") %>%
-    left_join(conductivity_a_2020, by = "node") %>%
-    filter(conductivity!=0) # remove all nodes that only exist on the edge of the semantic network of interest
+    left_join(nodeFreq, by = "node") %>%
+    left_join(conductivity, by = "node")
   
 
-  quantiles_a <- as.data.frame(cbind(quantile = paste0(seq(0, 100, by = 5), "%", sep = ""),
-                                          consensus = as.numeric(quantile(node_attributes_a$consensus, 
+  quantiles <- as.data.frame(cbind(quantile = paste0(seq(0, 100, by = 5), "%", sep = ""),
+                                          consensus = as.numeric(quantile(node_attributes$consensus, 
                                                                           seq(0, 1, by = 0.05))),
-                                          degree = as.numeric(quantile(node_attributes_a$degree, 
+                                          degree = as.numeric(quantile(node_attributes$degree, 
                                                                        seq(0, 1, by = 0.05))),
-                                          conductivity = as.numeric(quantile(node_attributes_a$conductivity, 
+                                          conductivity = as.numeric(quantile(node_attributes$conductivity, 
                                                                              seq(0, 1, by = 0.05)))))
   
-  placeholders_a <- 
-    node_attributes_a %>%
-    filter(consensus<=quantiles_a$consensus[quantiles_a$quantile=="20%"] & 
-             degree>=quantiles_a$degree[quantiles_a$quantile=="80%"] & 
-             conductivity>=quantiles_a$conductivity[quantiles_a$quantile=="80%"])
+  placeholders <- 
+    node_attributes %>%
+    filter(consensus<=as.numeric(quantiles$consensus[quantiles$quantile=="30%"]) & 
+             degree>=as.numeric(quantiles$degree[quantiles$quantile=="70%"]) & 
+             conductivity>=as.numeric(quantiles$conductivity[quantiles$quantile=="70%"]))
   
-  buzzwords_a <- 
-    node_attributes_a %>%
-    filter(consensus<=quantiles_a$consensus[quantiles_a$quantile=="20%"] & 
-             degree<=quantiles_a$degree[quantiles_a$quantile=="80%"] & 
-             conductivity>=quantiles_a$conductivity[quantiles_a$quantile=="80%"])
+  buzzwords <- 
+    node_attributes %>%
+    filter(consensus<=as.numeric(quantiles$consensus[quantiles$quantile=="30%"]) & 
+             degree<=as.numeric(quantiles$degree[quantiles$quantile=="30%"]) & 
+             conductivity>=as.numeric(quantiles$conductivity[quantiles$quantile=="70%"]))
+  
+  assign(paste("placeholders_a_", i, sep = ""), placeholders)
+  assign(paste("buzzwords_a_", i, sep = ""), buzzwords)
   
   output_tocompare <- 
-    data.frame(focal_node = cooc, 
-               n_cooc = nCooc,
-               n_nodes = length(node_attributes_a$node),
-               n_placeholders = length(placeholders_a$node),
-               n_buzzwords = length(buzzwords_a$node),
-               avg_conductivity = mean(node_attributes_a$conductivity),
-               avg_degree = mean(node_attributes_a$degree),
-               clustering_coeff = transitivity(graph.data.frame(resultGraph3Tier_a, directed = T)),
-               placeholders_1_10 = paste(placeholders_a$node[1], placeholders_a$node[2],
-                                          placeholders_a$node[3], placeholders_a$node[4],
-                                          placeholders_a$node[5], placeholders_a$node[6],
-                                          placeholders_a$node[7], placeholders_a$node[8],
-                                          placeholders_a$node[9], placeholders_a$node[10],
+    data.frame(focal_node = "conservation", 
+               n_nodes = length(node_attributes$node),
+               n_placeholders = length(placeholders$node),
+               n_buzzwords = length(buzzwords$node),
+               avg_conductivity = mean(node_attributes$conductivity),
+               avg_degree = mean(node_attributes$degree),
+               clustering_coeff = transitivity(graph.data.frame(coocGraph, directed = F)),
+               placeholders_1_10 = paste(placeholders$node[1], placeholders$node[2],
+                                          placeholders$node[3], placeholders$node[4],
+                                          placeholders$node[5], placeholders$node[6],
+                                          placeholders$node[7], placeholders$node[8],
+                                          placeholders$node[9], placeholders$node[10],
                                           sep = ", "),
-               buzzwords_1_10 = paste(buzzwords_a$node[1], buzzwords_a$node[2],
-                                      buzzwords_a$node[3], buzzwords_a$node[4],
-                                      buzzwords_a$node[5], buzzwords_a$node[6],
-                                      buzzwords_a$node[7], buzzwords_a$node[8],
-                                      buzzwords_a$node[9], buzzwords_a$node[10],
+               buzzwords_1_10 = paste(buzzwords$node[1], buzzwords$node[2],
+                                      buzzwords$node[3], buzzwords$node[4],
+                                      buzzwords$node[5], buzzwords$node[6],
+                                      buzzwords$node[7], buzzwords$node[8],
+                                      buzzwords$node[9], buzzwords$node[10],
                                          sep = ", "))
   
   coocGraph_compare <- rbind(coocGraph_compare, output_tocompare)
