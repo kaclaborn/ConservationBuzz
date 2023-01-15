@@ -14,7 +14,7 @@
 
 # ---- IMPORT LIBRARIES ----
 
-pacman::p_load(rio, tidyverse, quanteda, quanteda.textstats, igraph, lexicon, stopwords)
+pacman::p_load(rio, tidyverse, pdftools, quanteda, quanteda.textstats, igraph, lexicon, stopwords)
 
 
 
@@ -150,6 +150,29 @@ checkjournals[11,]
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
 
+# ---- 2.1 Import NGO corpus files ----
+
+# Identify list of folders
+files_folders_n <- paste("data/corpora/preprocessed/ngo", 
+                                list.files("data/corpora/preprocessed/ngo"), sep = "/")
+
+
+convertpdf2txt <- function(filename){
+  x <- sapply(filename, function(x){
+    x <- pdftools::pdf_text(x) %>%
+      paste(sep = " ") %>%
+      stringr::str_replace_all(fixed("\n"), " ") %>%
+      stringr::str_replace_all(fixed("\r"), " ") %>%
+      stringr::str_replace_all(fixed("\t"), " ") %>%
+      stringr::str_replace_all(fixed("\""), " ") %>%
+      paste(sep = " ", collapse = " ") %>%
+      stringr::str_squish() %>%
+      stringr::str_replace_all("- ", "") 
+    return(x)
+  })
+}
+
+
 
 
 # 
@@ -173,56 +196,56 @@ checkjournals[11,]
 
 # ---- 4.1 Import media corpus files ----
 
-# ---- 4.1.1 OPTION A: import from individual files (time consuming) ----
+# ---- 4.1.1 OPTION A: import from individual files (time consuming, only need to run once) ----
 
-# Identify list of folders
-files_folders_m <- paste("data/corpora/preprocessed/media",
-                         list.files("data/corpora/preprocessed/media"), sep = "/")
-
-# Create empty data frame with appropriate column names
-import_m <- data.frame(matrix(nrow = 0, ncol = 1))
-colnames(import_m) <- "raw"
-
-
-# PRE-PROCESSING NOTE: The final four lines of each text file downloaded from ProQuest were manually deleted
-#                      to remove "Contact us..." and to leave a blank line, for readLines function to use.
-# Text was: ____________________________________________________________
-#           Contact us at: http://about.proquest.com/go/pqissupportcontact
-#           Database copyright © 2022 ProQuest LLC. All rights reserved.
-#           Terms and Conditions: https://www.proquest.com/info/termsAndConditions
-
-
-# Import each file downloaded from ProQuest (i.e., NYT and WSJ articles) and append to data frame
-# -- These files are structured the same way, so can be imported and manipulated in one data frame.
-# -- Anything downloaded from NexisUni or elsewhere will have a different format and need separate processing.
-for(i in files_folders_m[1:2]) {
-
-  files <- list.files(i)
-
-  for(j in files) {
-
-    dat <- readLines(paste(i, j, sep = "/")) %>%
-            str_replace_all(fixed("\n"), "") %>%
-            str_replace_all(fixed("\r"), "") %>%
-            str_replace_all(fixed("\t"), "") %>%
-            str_replace_all(fixed("\""), "") %>%
-            paste(sep = " ", collapse = " ") %>%
-            str_squish() %>%
-            as.data.frame() %>%
-            rename("raw" = ".") %>%
-            separate_rows(raw, sep = "____________________________________________________________") %>%
-            .[-1,]
-
-    import_m <- rbind.data.frame(import_m, dat)
-
-  }
-}
-
-# Import any additional news articles and append to data frame (i.e., BBC or AP)
-
-# Export to .csv for easier access later
-
-export(import_m, 'data/corpora/preprocessed/media/media_docs_singlefile.csv')
+# # Identify list of folders
+# files_folders_m <- paste("data/corpora/preprocessed/media",
+#                          list.files("data/corpora/preprocessed/media"), sep = "/")
+# 
+# # Create empty data frame with appropriate column names
+# import_m <- data.frame(matrix(nrow = 0, ncol = 1))
+# colnames(import_m) <- "raw"
+# 
+# 
+# # PRE-PROCESSING NOTE: The final four lines of each text file downloaded from ProQuest were manually deleted
+# #                      to remove "Contact us..." and to leave a blank line, for readLines function to use.
+# # Text was: ____________________________________________________________
+# #           Contact us at: http://about.proquest.com/go/pqissupportcontact
+# #           Database copyright © 2022 ProQuest LLC. All rights reserved.
+# #           Terms and Conditions: https://www.proquest.com/info/termsAndConditions
+# 
+# 
+# # Import each file downloaded from ProQuest (i.e., NYT and WSJ articles) and append to data frame
+# # -- These files are structured the same way, so can be imported and manipulated in one data frame.
+# # -- Anything downloaded from NexisUni or elsewhere will have a different format and need separate processing.
+# for(i in files_folders_m[1:2]) {
+# 
+#   files <- list.files(i)
+# 
+#   for(j in files) {
+# 
+#     dat <- readLines(paste(i, j, sep = "/")) %>%
+#             str_replace_all(fixed("\n"), "") %>%
+#             str_replace_all(fixed("\r"), "") %>%
+#             str_replace_all(fixed("\t"), "") %>%
+#             str_replace_all(fixed("\""), "") %>%
+#             paste(sep = " ", collapse = " ") %>%
+#             str_squish() %>%
+#             as.data.frame() %>%
+#             rename("raw" = ".") %>%
+#             separate_rows(raw, sep = "____________________________________________________________") %>%
+#             .[-1,]
+# 
+#     import_m <- rbind.data.frame(import_m, dat)
+# 
+#   }
+# }
+# 
+# # Import any additional news articles and append to data frame (i.e., BBC or AP)
+# 
+# # Export to .csv for easier access later
+# 
+# export(import_m, 'data/corpora/preprocessed/media/media_docs_singlefile.csv')
 
 
 # ---- 4.1.2 OPTION B: import a single .csv of the texts (once Option A has been run at least one time) ----
@@ -272,7 +295,10 @@ docs_m <- import_m %>%
               str_replace(., "\\(See related.*.\\)", "") %>%
               str_replace(., "Credit:.*", "") %>%
               str_replace(., "â", "") %>%
-              str_replace(., "Enlarge this image. ", ""))
+              str_replace(., "Enlarge this image. ", "") %>%
+              str_replace(., "PHOTOGRAPH BY.*.", "") %>%
+              str_replace(., "PHOTOGRAPHS BY.*.", "") %>%
+              str_replace(., "Photograph .*.", ""))
 
 docs_m <- docs_m %>%
   mutate(docid = row_number(),
@@ -281,20 +307,21 @@ docs_m <- docs_m %>%
 
 
 # ---- 4.3 Output files to find duplicates using Julia function in code/processing/findDuplicates.ipynb ----
+# NOTE: only need to run once
 
-docs_nyt_findDuplicates <-
-  docs_m %>%
-  filter(grepl("NewYorkTimes", publication)) %>%
-  select(docid, text)
-
-docs_wsj_findDuplicates <- 
-  docs_m %>%
-  filter(grepl("WallStreetJournal", publication)) %>%
-  select(docid, text)
-
-
-write.csv(docs_nyt_findDuplicates, "data/corpora/preprocessed/media/docs_nyt_findDuplicates.csv", row.names = F)
-write.csv(docs_wsj_findDuplicates, "data/corpora/preprocessed/media/docs_wsj_findDuplicates.csv", row.names = F)
+# docs_nyt_findDuplicates <-
+#   docs_m %>%
+#   filter(grepl("NewYorkTimes", publication)) %>%
+#   select(docid, text)
+# 
+# docs_wsj_findDuplicates <- 
+#   docs_m %>%
+#   filter(grepl("WallStreetJournal", publication)) %>%
+#   select(docid, text)
+# 
+# 
+# write.csv(docs_nyt_findDuplicates, "data/corpora/preprocessed/media/docs_nyt_findDuplicates.csv", row.names = F)
+# write.csv(docs_wsj_findDuplicates, "data/corpora/preprocessed/media/docs_wsj_findDuplicates.csv", row.names = F)
 
 
 
