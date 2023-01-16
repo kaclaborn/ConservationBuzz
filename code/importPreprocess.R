@@ -214,7 +214,7 @@ checkjournals[11,]
 
 # ---- 4.1.2 OPTION B: import a single .csv of the texts (once Option A has been run at least one time) ----
 
-import_m <- import('data/corpora/media_docs_singlefile.csv')
+import_m <- import('data/corpora/preprocessed/media/media_docs_singlefile.csv')
 
 
 # ---- 4.2 Filter and pre-process ----
