@@ -10,6 +10,7 @@
 Initial_corpus/
 data/corpora
 data/outputs
+code/processing/.ipynb_checkpoints/
 
 # Example code in package build process
 *-Ex.R

@@ -14,7 +14,8 @@
 
 # ---- IMPORT LIBRARIES ----
 
-pacman::p_load(rio, tidyverse, dplyr, quanteda, quanteda.textstats, igraph, lexicon, stopwords)
+pacman::p_load(rio, tidyverse, pdftools, quanteda, quanteda.textstats, igraph, lexicon, stopwords)
+
 
 
 # 
@@ -71,12 +72,24 @@ docs_a <- import_a %>%
          "stage" = "Publication Stage") %>%
   select(title, year, journal, volume, issue, text, keywords, type, stage, citations) %>%
   filter(text!="[No abstract available]",
-         type!="Erratum") %>%
+         type!="Erratum", 
+         type!="Retracted") %>%
   # NOTE: may need to filter more article types
   mutate(journal = ifelse(grepl("Conservation Biology", journal, ignore.case = T)==T, "Conservation Biology", 
                           ifelse(grepl("Global Change Biology", journal, ignore.case = T)==T, "Global Change Biology", journal)),
          text = stringr::str_replace_all(text, ' Â©.*', ''), # remove back matter from abstracts
+         text = stringr::str_replace_all(text, '©.*', ''), # remove back matter from abstracts
+         text = stringr::str_replace_all(text, ' Conservation Biology published.*', ''), # remove back matter from abstracts
+         text = stringr::str_replace_all(text, ' Copyright.*', ''), # remove back matter from abstracts
+         text = stringr::str_replace_all(text, ' Global Change Biology published.*', ''), # remove back matter from abstracts
+         text = stringr::str_replace_all(text, '\\(C\\) 2000 Elsevier.*', ''), # remove back matter from Elsevier abstracts from year 2000
+         text = stringr::str_replace_all(text, 'Published by Elsevier.*', ''), # remove back matter from Elsevier abstracts
          text = stringr::str_replace_all(text, ' This article is categorized.*', ''), # remove back matter from Wiley Climate Change abstracts
+         text = stringr::str_replace_all(text, '2019 John Wiley & Sons Ltd', ''), # specific back matter cleaning
+         text = stringr::str_replace_all(text, '2016 Wiley Periodicals, Inc.', ''), # specific back matter cleaning
+         text = stringr::str_replace_all(text, '2002 Elsevier Science.*', ''), # specific back matter cleaning
+         text = stringr::str_replace_all(text, '2001 Elsevier Science.*', ''), # specific back matter cleaning
+         text = stringr::str_replace_all(text, '� 2016 Elsevier Ltd', ''), # specific back matter cleaning
          text = stringr::str_replace_all(text, '\"\"', ''), # general cleaning
          text = stringr::str_replace_all(text, 'Â', ''), # general cleaning
          text = stringr::str_replace_all(text, "'", ''), # general cleaning
@@ -137,6 +150,29 @@ checkjournals[11,]
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
 
+# ---- 2.1 Import NGO corpus files ----
+
+# Identify list of folders
+files_folders_n <- paste("data/corpora/preprocessed/ngo", 
+                                list.files("data/corpora/preprocessed/ngo"), sep = "/")
+
+
+convertpdf2txt <- function(filename){
+  x <- sapply(filename, function(x){
+    x <- pdftools::pdf_text(x) %>%
+      paste(sep = " ") %>%
+      stringr::str_replace_all(fixed("\n"), " ") %>%
+      stringr::str_replace_all(fixed("\r"), " ") %>%
+      stringr::str_replace_all(fixed("\t"), " ") %>%
+      stringr::str_replace_all(fixed("\""), " ") %>%
+      paste(sep = " ", collapse = " ") %>%
+      stringr::str_squish() %>%
+      stringr::str_replace_all("- ", "") 
+    return(x)
+  })
+}
+
+
 
 
 # 
@@ -160,10 +196,10 @@ checkjournals[11,]
 
 # ---- 4.1 Import media corpus files ----
 
-# ---- 4.1.1 OPTION A: import from individual files (time consuming) ----
+# ---- 4.1.1 OPTION A: import from individual files (time consuming, only need to run once) ----
 
 # # Identify list of folders
-# files_folders_m <- paste("data/corpora/preprocessed/media", 
+# files_folders_m <- paste("data/corpora/preprocessed/media",
 #                          list.files("data/corpora/preprocessed/media"), sep = "/")
 # 
 # # Create empty data frame with appropriate column names
@@ -183,25 +219,25 @@ checkjournals[11,]
 # # -- These files are structured the same way, so can be imported and manipulated in one data frame.
 # # -- Anything downloaded from NexisUni or elsewhere will have a different format and need separate processing.
 # for(i in files_folders_m[1:2]) {
-#   
+# 
 #   files <- list.files(i)
-#   
+# 
 #   for(j in files) {
-#     
+# 
 #     dat <- readLines(paste(i, j, sep = "/")) %>%
-#             str_replace_all(fixed("\n"), " ") %>%
-#             str_replace_all(fixed("\r"), " ") %>%
-#             str_replace_all(fixed("\t"), " ") %>%
-#             str_replace_all(fixed("\""), " ") %>%
+#             str_replace_all(fixed("\n"), "") %>%
+#             str_replace_all(fixed("\r"), "") %>%
+#             str_replace_all(fixed("\t"), "") %>%
+#             str_replace_all(fixed("\""), "") %>%
 #             paste(sep = " ", collapse = " ") %>%
 #             str_squish() %>%
 #             as.data.frame() %>%
 #             rename("raw" = ".") %>%
 #             separate_rows(raw, sep = "____________________________________________________________") %>%
 #             .[-1,]
-#     
+# 
 #     import_m <- rbind.data.frame(import_m, dat)
-#     
+# 
 #   }
 # }
 # 
@@ -209,12 +245,13 @@ checkjournals[11,]
 # 
 # # Export to .csv for easier access later
 # 
-# export(import_m, 'data/corpora/media_docs_singlefile.csv')
+# export(import_m, 'data/corpora/preprocessed/media/media_docs_singlefile.csv')
 
 
 # ---- 4.1.2 OPTION B: import a single .csv of the texts (once Option A has been run at least one time) ----
 
-import_m <- import('data/corpora/preprocessed/media/media_docs_singlefile.csv')
+import_m <- read.csv('data/corpora/preprocessed/media/media_docs_singlefile.csv')
+
 
 
 # ---- 4.2 Filter and pre-process ----
@@ -222,15 +259,35 @@ import_m <- import('data/corpora/preprocessed/media/media_docs_singlefile.csv')
 docs_m <- import_m %>%
   transmute(title = str_extract(raw, "(?<=Title:\\s).*.(?=\\sPublication title:)"), 
             publication = str_extract(raw, "(?<=Publication title:\\s).*.(?=\\sPages:)"),
+            publication = ifelse(is.na(publication), 
+                                 str_extract(raw, "(?<=Publication title:\\s).*.(?=\\sPublication year:)"), 
+                                 publication),
+            publication = ifelse(is.na(publication), 
+                                 str_extract(raw, "(?<=Publication title:\\s).*.(?=\\sPublicationyear:)"), 
+                                 publication),
+            publication = ifelse(is.na(publication), 
+                                 str_extract(raw, "(?<=Publicationtitle:\\s).*.(?=\\sPublication year:)"), 
+                                 publication),
+            publication = ifelse(is.na(publication), 
+                                 str_extract(raw, "(?<=Publication title:\\s).*.(?=\\sPublication date:)"), 
+                                 publication),
             year = str_extract(raw, "(?<=Publication year:\\s).*.(?=\\sPublication date:)"),
+            year = ifelse(is.na(year), 
+                          str_extract(raw, "(?<=Publicationyear:\\s).*.(?=\\sPublication date:)"), 
+                          year),
             date = str_extract(raw, "(?<=Publication date:\\s)(.{12})"),
-            subject = str_extract(raw, "(?<=Subject:\\s).*.(?=\\sTitle:)"),
+            subject = str_extract(raw, "(?<=Subject:\\s).*.(?=\\sTitle:)") %>%
+              str_replace(., "Location:.*", ""),
             author = str_extract(raw, "(?<=Author:\\s).*.(?=\\sPublication info:)"),
             author = ifelse(is.na(author), 
                             str_extract(raw, "(?<=Credit:\\s).*.(?=\\sSubject:)"),
                             author),
             section = str_extract(raw, "(?<=Section:\\s).*.(?=\\sPublisher:)"),
-            text = str_extract(raw, "(?<=Full text:\\s).*.(?=\\sSubject:)") %>% 
+            text = str_extract(raw, "(?<=Full text:\\s).*.(?=\\sSubject:)"),
+            text = ifelse(is.na(text),
+                          str_extract(raw, "(?<=Full text:\\s).*.(?=\\Location:)"),
+                          text),
+            text = text %>%
               str_replace(., "\\(.*.New York Times\\)", "") %>%
               str_replace(., "\\(.*.Associated Press\\)", "") %>%
               str_replace(., "\\(Associated Press\\)", "") %>%
@@ -238,14 +295,34 @@ docs_m <- import_m %>%
               str_replace(., "\\(pg.*.\\)", "") %>%
               str_replace(., "\\(See related.*.\\)", "") %>%
               str_replace(., "Credit:.*", "") %>%
-              str_replace(., "â", ""))
+              str_replace(., "â", "") %>%
+              str_replace(., "Enlarge this image. ", "") %>%
+              str_replace(., "PHOTOGRAPH BY.*.", "") %>%
+              str_replace(., "PHOTOGRAPHS BY.*.", "") %>%
+              str_replace(., "Photograph .*.", ""))
+
+docs_m <- docs_m %>%
+  mutate(docid = row_number(),
+         publication = str_replace_all(publication, " ", "")) %>%
+  filter(!is.na(text)) # roughly 35 articles were unable to be located using the above wrangling procedure, and are unrecoverable with the given info (only know a single author's name for some)
 
 
-docs_m$text[11]
+# ---- 4.3 Output files to find duplicates using Julia function in code/processing/findDuplicates.ipynb ----
+# NOTE: only need to run once
 
-# TRIMMING FULL TEXT:
-# Can keep photograph subtext, but remove "Photograph" from text?
+# docs_nyt_findDuplicates <-
+#   docs_m %>%
+#   filter(grepl("NewYorkTimes", publication)) %>%
+#   select(docid, text)
+# 
+# docs_wsj_findDuplicates <- 
+#   docs_m %>%
+#   filter(grepl("WallStreetJournal", publication)) %>%
+#   select(docid, text)
+# 
+# 
+# write.csv(docs_nyt_findDuplicates, "data/corpora/preprocessed/media/docs_nyt_findDuplicates.csv", row.names = F)
+# write.csv(docs_wsj_findDuplicates, "data/corpora/preprocessed/media/docs_wsj_findDuplicates.csv", row.names = F)
 
-# Make into corpus
 
-corpus_m <- quanteda::corpus(docs_m)
+
