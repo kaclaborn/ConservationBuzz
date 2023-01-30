@@ -14,7 +14,7 @@
 
 # ---- IMPORT LIBRARIES ----
 
-pacman::p_load(rio, tidyverse, pdftools, quanteda, quanteda.textstats, igraph, lexicon, stopwords)
+pacman::p_load(rio, tidyverse, pdftools, quanteda, quanteda.textstats, tidytext, lexicon, stopwords)
 
 
 
@@ -156,6 +156,20 @@ checkjournals[11,]
 files_folders_n <- paste("data/corpora/preprocessed/ngo", 
                                 list.files("data/corpora/preprocessed/ngo"), sep = "/")
 
+# Identify files within each folder 
+
+metadata_n <- data.frame(org_id = numeric(0),
+                         org = character(),
+                         year = numeric(0),
+                         filename = character())
+
+for(i in 1:length(files_folders_n)){
+  
+}
+
+
+
+# ---- 2.2 Define function to convert to txt ----
 
 convertpdf2txt <- function(filename){
   x <- sapply(filename, function(x){
@@ -172,7 +186,13 @@ convertpdf2txt <- function(filename){
   })
 }
 
+# ---- 2.3 Convert PDF to text ----
 
+ci_2021 <- convertpdf2txt(paste0(files_folders_n[3], "/", "2021_ci.pdf", sep = ""))
+wetlands_2021 <- convertpdf2txt(paste0(files_folders_n[12], "/", "2021_wetlands.pdf", sep = ""))
+iucn_2021 <- convertpdf2txt(paste0(files_folders_n[8], "/", "2021_iucn.pdf", sep = ""))
+
+list.files(files_folders_n[8])
 
 
 # 
