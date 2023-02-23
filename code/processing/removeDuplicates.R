@@ -78,9 +78,26 @@ docs_m_wsj <- read.csv("data/corpora/preprocessed/media/docs_wsj_findDuplicates.
 # Look for final edition or other identifier (most recent?) to keep one version over another
 
 duplicates_nyt <- 
-  checkduplicates_nyt %>% left_join(docs_m_nyt, by = "docid") %>%
-  filter(!is.na(duplicate1)) %>%
-  rename("text_docid" = "text") %>%
-  left_join(docs_m_nyt, by = c("duplicate1" = "docid"))
+  checkduplicates_nyt %>% .[order(.$docid),] %>% filter(!is.na(duplicate1)) %>% mutate(groupid = row_number()) %>%
+  pivot_longer(cols = c("docid", "duplicate1", "duplicate2", "duplicate3"), values_to = "docid") %>% 
+  na.omit() %>%
+  select(groupid, docid) %>%
+  left_join(docs_m %>% select(date, author, publication, docid, text), by = "docid") %>%
+  mutate(date = as.Date(date, format = "%B %e, %Y"))
 
-duplicates_nyt[76,]
+duplicates_nyt_bygroup <-
+  duplicates_nyt %>%
+  group_by(groupid) %>%
+  summarise(n = length(docid),
+            docid = list(docid),
+            date_range = case_when(n==2 ~ date[1] - date[2], 
+                                   n==3 ~ date[1] - date[3], 
+                                   n==4 ~ date[1] - date[4]),
+            same_auth = case_when(n==2 & author[1]==author[2] ~ 1, 
+                                  n==3 & author[1]==author[2] & author[1]==author[3] ~ 1,
+                                  n==4 & author[1]==author[2] & author[1]==author[3] & author[1]==author[4] ~ 1))
+  
+
+
+
+duplicates_nyt$text[duplicates_nyt$docid==8707]

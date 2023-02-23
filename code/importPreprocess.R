@@ -188,11 +188,13 @@ convertpdf2txt <- function(filename){
 
 # ---- 2.3 Convert PDF to text ----
 
+wcs_2020 <- convertpdf2txt(paste0(files_folders_n[13], "/", "2020_wcs.pdf", sep = ""))
 ci_2021 <- convertpdf2txt(paste0(files_folders_n[3], "/", "2021_ci.pdf", sep = ""))
 wetlands_2021 <- convertpdf2txt(paste0(files_folders_n[12], "/", "2021_wetlands.pdf", sep = ""))
 iucn_2021 <- convertpdf2txt(paste0(files_folders_n[8], "/", "2021_iucn.pdf", sep = ""))
 
 list.files(files_folders_n[8])
+write.table(wcs_2020, "data/corpora/preprocessed/ngo/213_wcs/2020_wcs.txt")
 
 
 # 
@@ -326,6 +328,7 @@ docs_m <- docs_m %>%
          publication = str_replace_all(publication, " ", "")) %>%
   filter(!is.na(text)) # roughly 35 articles were unable to be located using the above wrangling procedure, and are unrecoverable with the given info (only know a single author's name for some)
 
+write.csv(docs_m, "data/corpora/preprocessed/media/docs_m.csv", fileEncoding = "UTF-8")
 
 # ---- 4.3 Output files to find duplicates using Julia function in code/processing/findDuplicates.ipynb ----
 # NOTE: only need to run once
@@ -345,4 +348,8 @@ docs_m <- docs_m %>%
 # write.csv(docs_wsj_findDuplicates, "data/corpora/preprocessed/media/docs_wsj_findDuplicates.csv", row.names = F)
 
 
+# ---- 4.4 Import docs_m for analysis ----
+# NOTE: once docs_m has been run and finalized, we can export it to a flat file to import here (saves computational time)
+
+docs_m <- read.csv("data/corpora/preprocessed/media/docs_m.csv", fileEncoding = "UTF-8")
 
