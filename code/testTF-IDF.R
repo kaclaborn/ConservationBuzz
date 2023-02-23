@@ -29,3 +29,13 @@ avg_tf_idf_a <- tf_idf_a %>%
   summarise(ndocs = length(doc),
             mean_tf_idf = mean(tf_idf),
             median_tf_idf = median(tf_idf))
+
+bottom_1perc_tfidf <- avg_tf_idf_a %>%
+  filter(median_tf_idf <= quantile(avg_tf_idf_a$median_tf_idf, 0.01))
+
+
+ggplot(avg_tf_idf_a) +
+  geom_histogram(aes(x = median_tf_idf), bins = 100) +
+  scale_x_continuous(breaks = seq(0, 0.4, by = 0.02)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 270)) 

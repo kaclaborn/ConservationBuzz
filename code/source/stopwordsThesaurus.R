@@ -7,24 +7,30 @@
 # Build upon hash_lemmas table from lexicon package
 
 add_to_lemma <- rbind(data.frame(token = "analyse", lemma = "analyze"),
-                      data.frame(token = "analyses", lemma = "analyze"),
                       data.frame(token = "behaviour", lemma = "behavior"),
                       data.frame(token = "greenspace", lemma = "green space"),
                       data.frame(token = "programme", lemma = "program"),
                       data.frame(token = "sdgs", lemma = "sdg"),
                       data.frame(token = "socioeconomic", lemma = "socio-economic"),
-                      data.frame(token = "usa", lemma = "unite state"))
+                      data.frame(token = "usa", lemma = "unite state"),
+                      data.frame(token = "decision-making", lemma = "decision making"))
 
 
-thesaurus <- rbind(hash_lemmas, add_to_lemma)
+thesaurus <- rbind(hash_lemmas, add_to_lemma) %>%
+  mutate(lemma = ifelse(lemma=="analyse", 
+                        "analyze", 
+                        ifelse(lemma=="behaviour", 
+                               "behavior", 
+                               lemma))
+  )
 
 
 # ---- Stopwords ----
 
 add_to_stopwords <- c(# "-ly" adverbs
                       "accurately", "additionally", "adequately", "alternatively", "approximately", 
-                      "broadly", "commonly", "consistent", "consistently", "directly",
-                      "effectively", "explicitly", "finally", "frequently", "generally",  
+                      "broadly", "commonly", "consistent", "consistently", "considerably", "dangerously", "directly",
+                      "effectively", "efficiently", "explicitly", "finally", "frequently", "generally",  
                       "globally", "greatly", "heavily", "highly", "increasingly",  
                       "largely", "locally", "positively", "potentially", 
                       "predominantly", "previously", "primarily", "rapidly", "rarely", "recently",
@@ -46,12 +52,15 @@ add_to_stopwords <- c(# "-ly" adverbs
                       
                       # highly frequent, non-discriminating words
                       "increase", "decrease", "reduce", "multiple", "vary", "similar", "lack", "datum", "low", "high", "remain", 
-                      "decline", "due", "include", "exclude", "potential", "apply", "paper", "study",
+                      "decline", "due", "include", "exclude", "potential", "apply", "paper", "study", "add", "addition", "additional", "address",
+                      "aim", "alter", "article", "aspect", "bring", "choice", "choose", "considerable",
                       
                       # highly frequent descriptors of findings or methods in generic terms
                       "result", "suggest", "show", "find", "significant", "examine", "investigate", "demonstrate", "finding",
                       "highlight", "consider", "explore", "conduct", "reveal", "report", "explain", "effect", "affect", "identify",
-                      "provide", "assess", "determine", "compare", "observe") 
+                      "provide", "assess", "determine", "compare", "observe", "analyze", "analysis", "argue", "associate", "assume", 
+                      "assumption", "attempt", "avoid", "derive", "describe", "detail", "differ", "discuss", "emphasize", "estimate",
+                      "expect") 
 
 
 stopwords_extended <- c(stopwords(source = "smart"), add_to_stopwords)

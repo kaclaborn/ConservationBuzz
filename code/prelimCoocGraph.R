@@ -249,13 +249,20 @@ DTM_byyear <- mclapply(years, function(i) {
     subsetDTM(dat = docs_a, years = i)
   
     }, 
-  mc.cores = 1)
+  mc.cores = 22)
 
 
 for(i in 1:length(DTM_byyear)) {
   assign(paste("DTM_a_", years[i], sep = ""), 
          DTM_byyear[[i]])
 }
+
+# Export document term matrices, to source in next time
+for(i in 1:length(years)) {
+  saveRDS(get(paste("DTM_a_", years[i], sep = "")),
+          paste("data/outputs/DTMs/DTM_a_", years[i], ".rds", sep = ""))
+}
+
 
 # Create co-occurrence graph (COMPUTATIONALLY INTENSIVE)
 coocGraph_byyear <- mclapply(years, function(i) {
@@ -274,7 +281,7 @@ for(i in 1:length(coocGraph_byyear)) {
 
 
 # Export co-occurrence graphs, to source in next time
-for(i in 1:length(years_output)) {
+for(i in 1:length(years)) {
   export(get(paste("coocGraph_a_", years[i], sep = "")),
          paste("data/outputs/coocGraphs/coocGraph_a_", years[i], ".csv", sep = ""))
 }
@@ -344,7 +351,7 @@ consensus_thresholds <- c(0.25, 0.33, 0.5)
 
 for(i in 1:length(years)) {
   assign(paste("DTM_a_", years[i], sep = ""),
-         import(paste("data/outputs/DTMs/DTM_a_", years[i], ".csv", sep = "")))
+         readRDS(paste("data/outputs/DTMs/DTM_a_", years[i], ".rds", sep = "")))
   
   assign(paste("coocGraph_a_", years[i], sep = ""),
          import(paste("data/outputs/coocGraphs/coocGraph_a_", years[i], ".csv", sep = ""))
@@ -463,6 +470,9 @@ for(i in years){
 # Put all node attributes across years into a single data frame
 node_attributes_a <- do.call(rbind, lapply(paste0("node_attributes_a_", years), get) )
 
+# Export to easily pull in for next time?
+export(node_attributes_a, "data/outputs/node_attributes_a.csv")
+
 # Define clustering coefficients for each year's co-occurrence network
 clustering_coeffs <- 
   data.frame(coeff = mapply(i = paste0("coocGraph_a_", years), 
@@ -497,7 +507,8 @@ buzzwords_compare_consensus25 <-
   group_by(node, consensus_threshold) %>%
   summarise(n_years = length(node),
             first_year = min(year),
-            last_year = max(year))
+            last_year = max(year),
+            n_since2015 = length(node[year>=2015]))
 
 
 placeholders_compare_consensus25 <-
@@ -506,7 +517,8 @@ placeholders_compare_consensus25 <-
   group_by(node) %>%
   summarise(n_years = length(node),
             first_year = min(year),
-            last_year = max(year))
+            last_year = max(year),
+            n_since2015 = length(node[year>=2015]))
 
 placeholders_compare_30percentile_consensus25 <-
   node_attributes_a %>%
@@ -514,7 +526,8 @@ placeholders_compare_30percentile_consensus25 <-
   group_by(node) %>%
   summarise(n_years = length(node),
             first_year = min(year),
-            last_year = max(year))
+            last_year = max(year),
+            n_since2015 = length(node[year>=2015]))
 
 allusions_compare <-
   node_attributes_a %>%
