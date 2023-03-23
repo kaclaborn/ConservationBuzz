@@ -10,6 +10,9 @@
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
 
+library(parallel)
+detectCores()
+
 
 # ---- 1.1 Source thesaurus and stopword list ----
 
@@ -59,23 +62,38 @@ subsetDTM <- function(dat = NULL, years = NULL) {
 
 # ---- 1.4 Identify summary stats for co-occcurrence significance tests, per corpus ----
 
-# -- Subset full corpus for each institution (not disaggregated by year)
+# -- Academia
+# --- Subset full corpus for each institution (not disaggregated by year)
 DTM_a <- subsetDTM(dat = docs_a, years = 2000:2021)
 
-# -- Identify summary stats for co-occurrence significance tests for "conservation" (to determine threshold for significance)
+# --- Identify summary stats for co-occurrence significance tests for "conservation" (to determine threshold for significance)
 conservation_coocs_a <- data.frame(sig = calculateCoocStatistics("conservation", DTM_a, measure = "DICE")) %>%
   mutate(word = rownames(.))
-
 
 summary(conservation_coocs_a)
 mean(conservation_coocs_a$sig) + 2*sd(conservation_coocs_a$sig)
 ggplot(conservation_coocs_a) + geom_histogram(aes(sig))
 
 
+# -- Media
+# --- Subset full corpus for each institution (not disaggregated by year)
+DTM_m <- subsetDTM(dat = docs_m_filtered, years = 2000:2021)
+
+# --- Identify summary stats for co-occurrence significance tests for "conservation" (to determine threshold for significance)
+conservation_coocs_m <- data.frame(sig = calculateCoocStatistics("conservation", DTM_m, measure = "DICE")) %>%
+  mutate(word = rownames(.))
+
+summary(conservation_coocs_m)
+mean(conservation_coocs_m$sig) + 2*sd(conservation_coocs_m$sig)
+ggplot(conservation_coocs_m) + geom_histogram(aes(sig))
+
+
+
+
 # ---- 1.5 Define co-occurrence network development function ----
 
 # -- Function to create a co-occurrence network, using a three-tiered approach to co-occurrence identification
-coocGraph3Tier <- function(dat = NULL, coocTerm = NULL, sd_multiplier = 2) {
+coocGraph3Tier <- function(dat = NULL, coocTerm = NULL, sd_multiplier = 2, conservationCoocs = NULL) {
   
   # Define parameters for the central co-occurrence term of interest & number of co-occurrences to include in analysis
   coocTerm <- coocTerm
@@ -85,7 +103,7 @@ coocGraph3Tier <- function(dat = NULL, coocTerm = NULL, sd_multiplier = 2) {
   coocs <- data.frame(sig = calculateCoocStatistics(coocTerm, dat, measure = "DICE")) %>%
     mutate(word = rownames(.)) 
   
-  sigval <- mean(conservation_coocs_a$sig) + sd_multiplier*sd(conservation_coocs_a$sig)
+  sigval <- mean(conservationCoocs$sig) + sd_multiplier*sd(conservationCoocs$sig)
   
   coocs <- coocs %>%
     filter(sig>=sigval)
@@ -237,9 +255,6 @@ ggplot(conservation_coocs_a) + geom_histogram(aes(sig))
 
 # ---- 2.1.2 Parallel computing for creating co-occurrence graphs per year ----
 
-library(parallel)
-detectCores()
-
 # Identify years to run
 years <- 2000:2021
 
@@ -268,8 +283,9 @@ for(i in 1:length(years)) {
 coocGraph_byyear <- mclapply(years, function(i) {
   
   coocGraph3Tier(dat = get(paste("DTM_a_", i, sep = "")), 
-                        coocTerm = "conservation", 
-                        sd_multiplier = 3)
+                 coocTerm = "conservation", 
+                 sd_multiplier = 3,
+                 conservationCoocs = conservation_coocs_a)
   },
   mc.cores = 128)
 
@@ -328,6 +344,84 @@ for(i in 1:length(years)) {
 #   filter(consensus<median(node_attributes_a$consensus) &
 #            degree<median(node_attributes_a$degree) &
 #            conductivity>median(node_attributes_a$conductivity))
+
+
+# ---- 2.4 MEDIA ----
+
+# ---- 2.4.1 Full corpus (all years) ----
+
+wordcount_m <-
+  corpus(docs_m_filtered) %>%
+  tokens(remove_punct = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) %>% 
+  tokens_tolower() %>% 
+  tokens_replace(thesaurus$token, thesaurus$lemma, valuetype = "fixed") %>%
+  tokens_remove(pattern = stopwords_extended, padding = T) %>%
+  dfm(., remove_padding = TRUE) %>%
+  textstat_frequency(., n = 4000)
+
+# identify summary stats for co-occurrence significance tests for "conservation"
+DTM_m <- subsetDTM(dat = docs_m_filtered, years = 2000:2021)
+
+conservation_coocs_m <- data.frame(sig = calculateCoocStatistics("conservation", DTM_m, measure = "DICE")) %>%
+  mutate(word = rownames(.))
+
+# testing other central, focal nodes to compare
+other_coocs_m <- data.frame(sig = calculateCoocStatistics("stakeholder", DTM_m, measure = "DICE")) %>%
+  mutate(word = rownames(.))
+
+summary(conservation_coocs_m)
+mean(other_coocs_m$sig) + 2*sd(other_coocs_m$sig)
+ggplot(conservation_coocs_m) + geom_histogram(aes(sig))
+
+
+# ---- 2.4.2 Parallel computing for creating co-occurrence graphs per year ----
+
+# Identify years to run
+years <- 2000:2021
+
+# Create DTM
+DTM_byyear <- mclapply(years, function(i) {
+  
+  subsetDTM(dat = docs_m_filtered, years = i)
+  
+}, 
+mc.cores = 22)
+
+
+for(i in 1:length(DTM_byyear)) {
+  assign(paste("DTM_m_", years[i], sep = ""), 
+         DTM_byyear[[i]])
+}
+
+# Export document term matrices, to source in next time
+for(i in 1:length(years)) {
+  saveRDS(get(paste("DTM_m_", years[i], sep = "")),
+          paste("data/outputs/DTMs/DTM_m_", years[i], ".rds", sep = ""))
+}
+
+
+# Create co-occurrence graph (COMPUTATIONALLY INTENSIVE)
+coocGraph_byyear <- mclapply(years, function(i) {
+  
+  coocGraph3Tier(dat = get(paste("DTM_m_", i, sep = "")), 
+                 coocTerm = "conservation", 
+                 sd_multiplier = 3,
+                 conservationCoocs = conservation_coocs_m)
+},
+mc.cores = 128)
+
+
+for(i in 1:length(coocGraph_byyear)) {
+  assign(paste("coocGraph_m_", years[i], sep = ""), 
+         coocGraph_byyear[[i]])
+}
+
+
+# Export co-occurrence graphs, to source in next time
+for(i in 1:length(years)) {
+  export(get(paste("coocGraph_m_", years[i], sep = "")),
+         paste("data/outputs/coocGraphs/coocGraph_m_", years[i], ".csv", sep = ""))
+}
 
 
 # 
