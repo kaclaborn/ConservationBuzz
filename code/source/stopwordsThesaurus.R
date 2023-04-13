@@ -47,7 +47,7 @@ add_to_stopwords <- c(# "-ly" adverbs
                       "2", "2-3", "2-4", "2-5", "2-9", "20", "20-30", "20-25", "20-40", "2-year", "20th", "21st",
                       "3", "3-4", "3-5", "3-7", "3d", "30-40", "30-50", "30-70", "30-year", 
                       "4", "4-10", "4-year", "40-50", "5", "5-8", "5-10", "5-11", "5-year", 
-                      "6-10", "6years", "6-year", "8-month", "9-year", 
+                      "6-10", "6years", "6-year", "8-month", "9-year", "mr", "ms", "mrs", "dr", 
                       ## Should I leave in references to decades and centuries and multi-year events? (e.g., "1990s", "21st century", "6-year")
                       
                       # highly frequent, non-discriminating words
