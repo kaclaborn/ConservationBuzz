@@ -14,12 +14,7 @@
 
 # ---- IMPORT LIBRARIES ----
 
-<<<<<<< HEAD
-pacman::p_load(rio, tidyverse, quanteda, quanteda.textstats, tidytext, lexicon, stopwords)
-=======
 pacman::p_load(rio, tidyverse)
->>>>>>> 34459932fd020bc36b96a1b7483e9ff2578e4bb5
-
 
 
 # 
@@ -232,62 +227,11 @@ write.csv(import_n, "data/corpora/processed/docs_n.csv", row.names = F)
 
 # ---- 4.1 Import media corpus files ----
 
-    # ---- 4.1.1 OPTION A: import from individual files (TIME CONSUMING, ONLY NEED TO RUN ONCE) ----
+# ---- 4.1.1 OPTION A: import from individual files (TIME CONSUMING, ONLY NEED TO RUN ONCE) ----
 
-    # # Identify list of folders
-    # files_folders_m <- paste("data/corpora/preprocessed/media",
-    #                          list.files("data/corpora/preprocessed/media"), sep = "/")
-    # 
-    # # Create empty data frame with appropriate column names
-    # import_m <- data.frame(matrix(nrow = 0, ncol = 1))
-    # colnames(import_m) <- "raw"
-    # 
-    # 
-    # # PRE-PROCESSING NOTE: The final four lines of each text file downloaded from ProQuest were manually deleted
-    # #                      to remove "Contact us..." and to leave a blank line, for readLines function to use.
-    # # Text was: ____________________________________________________________
-    # #           Contact us at: http://about.proquest.com/go/pqissupportcontact
-    # #           Database copyright © 2022 ProQuest LLC. All rights reserved.
-    # #           Terms and Conditions: https://www.proquest.com/info/termsAndConditions
-    # 
-    # 
-    # # Import each file downloaded from ProQuest (i.e., NYT and WSJ articles) and append to data frame
-    # # -- These files are structured the same way, so can be imported and manipulated in one data frame.
-    # # -- Anything downloaded from NexisUni or elsewhere will have a different format and need separate processing.
-    # for(i in files_folders_m[1:2]) {
-    # 
-    #   files <- list.files(i)
-    # 
-    #   for(j in files) {
-    # 
-    #     dat <- readLines(paste(i, j, sep = "/")) %>%
-    #             str_replace_all(fixed("\n"), "") %>%
-    #             str_replace_all(fixed("\r"), "") %>%
-    #             str_replace_all(fixed("\t"), "") %>%
-    #             str_replace_all(fixed("\""), "") %>%
-    #             paste(sep = " ", collapse = " ") %>%
-    #             str_squish() %>%
-    #             as.data.frame() %>%
-    #             rename("raw" = ".") %>%
-    #             separate_rows(raw, sep = "____________________________________________________________") %>%
-    #             .[-1,]
-    # 
-    #     import_m <- rbind.data.frame(import_m, dat)
-    # 
-    #   }
-    # }
-    # 
-    # # Import any additional news articles and append to data frame (i.e., BBC or AP)
-    # 
-    # # Export to .csv for easier access later
-    # 
-    # write.csv(import_m, 'data/corpora/preprocessed/media/media_docs_singlefile.csv', fileEncoding = "UTF-8")
-    
-
-<<<<<<< HEAD
 # # Identify list of folders
-files_folders_m <- paste("data/corpora/preprocessed/media",
-                         list.files("data/corpora/preprocessed/media"), sep = "/")
+# files_folders_m <- paste("data/corpora/preprocessed/media",
+#                          list.files("data/corpora/preprocessed/media"), sep = "/")
 # 
 # # Create empty data frame with appropriate column names
 # import_m <- data.frame(matrix(nrow = 0, ncol = 1))
@@ -327,14 +271,20 @@ files_folders_m <- paste("data/corpora/preprocessed/media",
 # 
 #   }
 # }
-=======
-    # ---- 4.1.2 OPTION B: import a single .csv of the texts (ONCE OPTION A HAS BEEN RUN AT LEAST ONCE) ----
+# 
+# # Import any additional news articles and append to data frame (i.e., BBC or AP)
+# 
+# # Export to .csv for easier access later
+# 
+# write.csv(import_m, 'data/corpora/preprocessed/media/media_docs_singlefile.csv', fileEncoding = "UTF-8")
 
-    import_m <- read.csv('data/corpora/preprocessed/media/media_docs_singlefile.csv', fileEncoding = "UTF-8")
- 
- 
+
+# ---- 4.1.2 OPTION B: import a single .csv of the texts (ONCE OPTION A HAS BEEN RUN AT LEAST ONCE) ----
+
+import_m <- read.csv('data/corpora/preprocessed/media/media_docs_singlefile.csv', fileEncoding = "UTF-8")
+
+
 # ---- 4.2 Filter and pre-process (ONLY NEED TO RUN ONCE - FOR ANALYSIS, GO STRAIGHT TO SECTION 4.4) ----
->>>>>>> 34459932fd020bc36b96a1b7483e9ff2578e4bb5
 # 
 # docs_m <- import_m %>%
 #   transmute(title = str_extract(raw, "(?<=Title:\\s).*.(?=\\sPublication title:)"), 
@@ -386,79 +336,11 @@ files_folders_m <- paste("data/corpora/preprocessed/media",
 #          publication = str_replace_all(publication, " ", "")) %>%
 #   filter(!is.na(text)) # roughly 35 articles were unable to be located using the above wrangling procedure, and are unrecoverable with the given info (only know a single author's name for some)
 # 
-<<<<<<< HEAD
-# export(import_m, 'data/corpora/preprocessed/media/media_docs_singlefile.csv')
-
-
-# ---- 4.1.2 OPTION B: import a single .csv of the texts (once Option A has been run at least one time) ----
-
-import_m <- read.csv('data/corpora/preprocessed/media/media_docs_singlefile.csv')
-
-
-import_m[8000,]
-# ---- 4.2 Filter and pre-process ----
-
-docs_m <- import_m %>%
-  transmute(title = str_extract(raw, "(?<=Title:\\s).*.(?=\\sPublication title:)"), 
-            publication = str_extract(raw, "(?<=Publication title:\\s).*.(?=\\sPages:)"),
-            publication = ifelse(is.na(publication), 
-                                 str_extract(raw, "(?<=Publication title:\\s).*.(?=\\sPublication year:)"), 
-                                 publication),
-            publication = ifelse(is.na(publication), 
-                                 str_extract(raw, "(?<=Publication title:\\s).*.(?=\\sPublicationyear:)"), 
-                                 publication),
-            publication = ifelse(is.na(publication), 
-                                 str_extract(raw, "(?<=Publicationtitle:\\s).*.(?=\\sPublication year:)"), 
-                                 publication),
-            publication = ifelse(is.na(publication), 
-                                 str_extract(raw, "(?<=Publication title:\\s).*.(?=\\sPublication date:)"), 
-                                 publication),
-            year = str_extract(raw, "(?<=Publication year:\\s).*.(?=\\sPublication date:)"),
-            year = ifelse(is.na(year), 
-                          str_extract(raw, "(?<=Publicationyear:\\s).*.(?=\\sPublication date:)"), 
-                          year),
-            date = str_extract(raw, "(?<=Publication date:\\s)(.{12})"),
-            subject = str_extract(raw, "(?<=Subject:\\s).*.(?=\\sTitle:)") %>%
-              str_replace(., "Location:.*", ""),
-            author = str_extract(raw, "(?<=Author:\\s).*.(?=\\sPublication info:)"),
-            author = ifelse(is.na(author), 
-                            str_extract(raw, "(?<=Credit:\\s).*.(?=\\sSubject:)"),
-                            author),
-            section = str_extract(raw, "(?<=Section:\\s).*.(?=\\sPublisher:)"),
-            text = str_extract(raw, "(?<=Full text:\\s).*.(?=\\sSubject:)"),
-            text = ifelse(is.na(text),
-                          str_extract(raw, "(?<=Full text:\\s).*.(?=\\Location:)"),
-                          text),
-            text = text %>%
-              str_replace(., "\\(.*.New York Times\\)", "") %>%
-              str_replace(., "\\(.*.Associated Press\\)", "") %>%
-              str_replace(., "\\(Associated Press\\)", "") %>%
-              str_replace(., "\\(.*.Wildlife Conservation Society\\)", "") %>%
-              str_replace(., "\\(pg.*.\\)", "") %>%
-              str_replace(., "\\(See related.*.\\)", "") %>%
-              str_replace(., "Credit:.*", "") %>%
-              str_replace(., "â", "") %>%
-              str_replace(., "Enlarge this image. ", "") %>%
-              str_replace(., "PHOTOGRAPH BY.*.", "") %>%
-              str_replace(., "PHOTOGRAPHS BY.*.", "") %>%
-              str_replace(., "Photograph .*.", ""))
-
-docs_m <- docs_m %>%
-  mutate(docid = row_number(),
-         publication = str_replace_all(publication, " ", "")) %>%
-  filter(!is.na(text)) # roughly 35 articles were unable to be located using the above wrangling procedure, and are unrecoverable with the given info (only know a single author's name for some)
-
-write.csv(docs_m, "data/corpora/preprocessed/media/docs_m.csv", fileEncoding = "UTF-8")
-
-# ---- 4.3 Output files to find duplicates using Julia function in code/processing/findDuplicates.ipynb ----
-# NOTE: only need to run once
-=======
 # write.csv(docs_m, "data/corpora/preprocessed/media/docs_m.csv", fileEncoding = "UTF-8")
 
 
 
 # ---- 4.3 Output files to find duplicates using Python function in code/processing/findDuplicates.py (ONLY NEED TO RUN ONCE) ----
->>>>>>> 34459932fd020bc36b96a1b7483e9ff2578e4bb5
 
 # docs_nyt_findDuplicates <-
 #   docs_m %>%
@@ -491,5 +373,6 @@ write.csv(docs_m, "data/corpora/preprocessed/media/docs_m.csv", fileEncoding = "
 # ---- 4.4 Import docs_m_filtered for analysis ----
 
 docs_m_filtered <- read.csv("data/corpora/preprocessed/media/docs_m_filtered.csv", fileEncoding = "UTF-8")
+
 
 
