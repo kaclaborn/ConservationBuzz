@@ -568,13 +568,13 @@ node_attributes_a <- do.call(rbind, lapply(paste0("node_attributes_a_", years), 
 export(node_attributes_a, "data/outputs/node_attributes_a.csv")
 
 # Define clustering coefficients for each year's co-occurrence network
-clustering_coeffs <- 
+clustering_coeffs_a <- 
   data.frame(coeff = mapply(i = paste0("coocGraph_a_", years), 
                             function(i) {transitivity(graph.data.frame(get(i), directed = F))})) %>%
   mutate(year = as.numeric(substr(rownames(.), 13, 16)))
 
 # Quick comparison across years
-years_compare <- 
+years_compare_a <- 
   node_attributes_a %>%
   group_by(year, consensus_threshold) %>%
   summarise(focal_node = "conservation", 
@@ -592,7 +592,7 @@ years_compare <-
             placeholders_1_10 = list(node[symbol_type=="placeholder"][1:10]),
             buzzwords_1_10 = list(node[symbol_type=="buzzword"][1:10]),
             standard_1_10 = list(node[symbol_type=="standard"][1:10])) %>%
-  left_join(clustering_coeffs, by = "year")
+  left_join(clustering_coeffs_a, by = "year")
 
 
 buzzwords_compare_consensus25 <-

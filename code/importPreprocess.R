@@ -14,7 +14,7 @@
 
 # ---- IMPORT LIBRARIES ----
 
-pacman::p_load(rio, tidyverse, pdftools, quanteda, quanteda.textstats, tidytext, lexicon, stopwords)
+pacman::p_load(rio, tidyverse)
 
 
 
@@ -156,45 +156,55 @@ checkjournals[11,]
 files_folders_n <- paste("data/corpora/preprocessed/ngo", 
                                 list.files("data/corpora/preprocessed/ngo"), sep = "/")
 
-# Identify files within each folder 
+# Identify files within each folder, import the data 
 
 metadata_n <- data.frame(org_id = numeric(0),
                          org = character(),
                          year = numeric(0),
                          filename = character())
 
-for(i in 1:length(files_folders_n)){
+import_n <- data.frame(text = character(),
+                       year = numeric(0),
+                       org_id = numeric(0))
+
+
+for(i in 1:length(files_folders_n)) {
   
-}
-
-
-
-# ---- 2.2 Define function to convert to txt ----
-
-convertpdf2txt <- function(filename){
-  x <- sapply(filename, function(x){
-    x <- pdftools::pdf_text(x) %>%
-      paste(sep = " ") %>%
-      stringr::str_replace_all(fixed("\n"), " ") %>%
-      stringr::str_replace_all(fixed("\r"), " ") %>%
-      stringr::str_replace_all(fixed("\t"), " ") %>%
-      stringr::str_replace_all(fixed("\""), " ") %>%
+  files <- list.files(files_folders_n[i])
+  
+  files_recent <- files[as.numeric(substr(files, 1, 4))>2016]
+  
+  for(j in files_recent) {
+    
+    dat <- readLines(paste(files_folders_n[i], j, sep = "/")) %>%
+      str_replace_all(fixed("\n"), "") %>%
+      str_replace_all(fixed("\r"), "") %>%
+      str_replace_all(fixed("\t"), "") %>%
+      str_replace_all(fixed("\""), "") %>%
       paste(sep = " ", collapse = " ") %>%
-      stringr::str_squish() %>%
-      stringr::str_replace_all("- ", "") 
-    return(x)
-  })
+      str_squish() %>%
+      as.data.frame() %>%
+      rename("text" = ".") %>%
+      separate_rows(text, sep = "——————————") %>%
+      filter(text!="")
+    
+    metadata <- data.frame(org_id = as.numeric(substr(list.files("data/corpora/preprocessed/ngo")[i], 1, 3)),
+                           org = NA,
+                           year = as.numeric(substr(j, 1, 4)),
+                           filename = j,
+                           n_docs = length(dat$text))
+    
+    dat <- dat %>% cbind.data.frame(metadata %>% dplyr::select(year, org_id))
+    
+    # append the new metadata and text data to the master data frames
+    metadata_n <- rbind.data.frame(metadata_n, metadata)
+    import_n <- rbind.data.frame(import_n, dat)
+    
+  }
 }
 
-# ---- 2.3 Convert PDF to text ----
 
-wcs_2020 <- convertpdf2txt(paste0(files_folders_n[13], "/", "2020_wcs.pdf", sep = ""))
-ci_2021 <- convertpdf2txt(paste0(files_folders_n[3], "/", "2021_ci.pdf", sep = ""))
-wetlands_2021 <- convertpdf2txt(paste0(files_folders_n[12], "/", "2021_wetlands.pdf", sep = ""))
-iucn_2021 <- convertpdf2txt(paste0(files_folders_n[8], "/", "2021_iucn.pdf", sep = ""))
-
-list.files(files_folders_n[8])
-write.table(wcs_2020, "data/corpora/preprocessed/ngo/213_wcs/2020_wcs.txt")
+write.csv(import_n, "data/corpora/processed/docs_n.csv", row.names = F)
 
 
 # 
