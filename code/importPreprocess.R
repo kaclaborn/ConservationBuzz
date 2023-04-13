@@ -14,7 +14,7 @@
 
 # ---- IMPORT LIBRARIES ----
 
-pacman::p_load(rio, tidyverse, pdftools, quanteda, quanteda.textstats, tidytext, lexicon, stopwords)
+pacman::p_load(rio, tidyverse, quanteda, quanteda.textstats, tidytext, lexicon, stopwords)
 
 
 
@@ -49,7 +49,7 @@ for(i in files_folders_a) {
   
   for(j in files) {
     
-    dat <- import(paste(i, j, sep = "/"))
+    dat <- read_csv(paste(i, j, sep = "/"), locale = readr::locale(encoding = "UTF-8"))
     
     import_a <- rbind.data.frame(import_a, dat)
     
@@ -221,8 +221,8 @@ write.table(wcs_2020, "data/corpora/preprocessed/ngo/213_wcs/2020_wcs.txt")
 # ---- 4.1.1 OPTION A: import from individual files (time consuming, only need to run once) ----
 
 # # Identify list of folders
-# files_folders_m <- paste("data/corpora/preprocessed/media",
-#                          list.files("data/corpora/preprocessed/media"), sep = "/")
+files_folders_m <- paste("data/corpora/preprocessed/media",
+                         list.files("data/corpora/preprocessed/media"), sep = "/")
 # 
 # # Create empty data frame with appropriate column names
 # import_m <- data.frame(matrix(nrow = 0, ncol = 1))
@@ -275,7 +275,7 @@ write.table(wcs_2020, "data/corpora/preprocessed/ngo/213_wcs/2020_wcs.txt")
 import_m <- read.csv('data/corpora/preprocessed/media/media_docs_singlefile.csv')
 
 
-
+import_m[8000,]
 # ---- 4.2 Filter and pre-process ----
 
 docs_m <- import_m %>%
