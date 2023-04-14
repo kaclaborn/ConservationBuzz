@@ -1,3 +1,4 @@
 *
 !.gitignore
 !removeDuplicates.R
+!posTagging.R

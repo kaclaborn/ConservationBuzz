@@ -33,7 +33,7 @@ files_folders_a <- paste("data/corpora/preprocessed/academic",
                                 list.files("data/corpora/preprocessed/academic"), sep = "/")
 
 # Identify common column names across .csv files
-cols_a <- colnames(import(paste(files_folders_a[1], 
+cols_a <- colnames(read_csv(paste(files_folders_a[1], 
                                         list.files(files_folders_a[1])[1], 
                                         sep = "/")))
 
@@ -152,8 +152,8 @@ checkjournals[11,]
 # ---- 2.1 Import NGO corpus files ----
 
 # Identify list of folders
-files_folders_n <- paste("data/corpora/preprocessed/ngo", 
-                                list.files("data/corpora/preprocessed/ngo"), sep = "/")
+files_folders_n <- paste("data/corpora/processed/ngo", 
+                                list.files("data/corpora/processed/ngo"), sep = "/")
 
 # Identify files within each folder, import the data 
 
@@ -187,7 +187,7 @@ for(i in 1:length(files_folders_n)) {
       separate_rows(text, sep = "——————————") %>%
       filter(text!="")
     
-    metadata <- data.frame(org_id = as.numeric(substr(list.files("data/corpora/preprocessed/ngo")[i], 1, 3)),
+    metadata <- data.frame(org_id = as.numeric(substr(list.files("data/corpora/processed/ngo")[i], 1, 3)),
                            org = NA,
                            year = as.numeric(substr(j, 1, 4)),
                            filename = j,
@@ -203,7 +203,7 @@ for(i in 1:length(files_folders_n)) {
 }
 
 
-write.csv(import_n, "data/corpora/processed/docs_n.csv", row.names = F)
+write.csv(import_n, "data/corpora/processed/docs_n.csv", row.names = F, fileEncoding = "UTF-8")
 
 
 # 
@@ -281,7 +281,7 @@ write.csv(import_n, "data/corpora/processed/docs_n.csv", row.names = F)
 
 # ---- 4.1.2 OPTION B: import a single .csv of the texts (ONCE OPTION A HAS BEEN RUN AT LEAST ONCE) ----
 
-import_m <- read.csv('data/corpora/preprocessed/media/media_docs_singlefile.csv', fileEncoding = "UTF-8")
+import_m <- read_csv('data/corpora/preprocessed/media/media_docs_singlefile.csv', locale = readr::locale(encoding = "UTF-8"))
 
 
 # ---- 4.2 Filter and pre-process (ONLY NEED TO RUN ONCE - FOR ANALYSIS, GO STRAIGHT TO SECTION 4.4) ----
@@ -372,7 +372,7 @@ import_m <- read.csv('data/corpora/preprocessed/media/media_docs_singlefile.csv'
 
 # ---- 4.4 Import docs_m_filtered for analysis ----
 
-docs_m_filtered <- read.csv("data/corpora/preprocessed/media/docs_m_filtered.csv", fileEncoding = "UTF-8")
+docs_m_filtered <- read_csv("data/corpora/preprocessed/media/docs_m_filtered.csv", locale = readr::locale(encoding = "UTF-8"))
 
 
 

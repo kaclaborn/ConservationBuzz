@@ -18,7 +18,8 @@ options(dplyr.summarise.inform = FALSE)
 
 # ---- 1.1 Import libraries ----
 
-pacman::p_load(tidyverse, quanteda, quanteda.textstats, tidytext, lexicon, stopwords, parallel)
+pacman::p_load(tidyverse, quanteda, quanteda.textstats, tidytext, qdap, 
+               lexicon, stopwords, parallel, igraph)
 
 
 # ---- 1.2 Source processing & analysis functions ----
@@ -59,20 +60,22 @@ percentile_thresholds <- c(0.3, 0.45, 0.5)
 
 # ---- 2.1 Import corpus documents ----
 
-docs_n <- read.csv("data/corpora/processed/docs_n.csv")
-
+docs_n <- read_csv("data/corpora/processed/docs_n.csv", locale = readr::locale(encoding = "UTF-8"))
+docs_m <- read_csv("data/corpora/preprocessed/media/docs_m_filtered.csv", locale = readr::locale(encoding = "UTF-8"))
 
 # ---- 2.2 Subset DTMs per year, create co-occurrence networks, and export to flat file ----
 ## COMPUTATIONALLY INTENSIVE -- ONLY RUN ONCE AND THEN SOURCE IN FLAT FILES TO DO ANALYSIS IN SECTION 3 AND BEYOND
 
-coocGraphsPerYear(input_data = docs_n, input_suffix = input_suffix, years = years, coocTerm = "conservation", sd_multiplier = 4)
+coocGraphsPerYear(input_data = docs_m, input_suffix = "m", years = 2021, 
+                  coocTerm = "conservation", sd_multiplier = 5, stopword_list = stopwords_pos_extend_m)
 
-# ---- 2.3 Define node attributes per co-occurrence network, and compare across years ----
 
-findNodeAttributes(input_suffix = input_suffix, 
-                   years = years, 
-                   consensus_thresholds = consensus_thresholds, 
-                   percentile_thresholds = percentile_thresholds,
+ # ---- 2.3 Define node attributes per co-occurrence network, and compare across years ----
+
+findNodeAttributes(input_suffix = "m", 
+                   years = 2021, 
+                   consensus_thresholds = c(0.25, 0.33, 0.4, 0.45, 0.5), 
+                   percentile_thresholds = 0.5,
                    coocTerm = "conservation")
 
 

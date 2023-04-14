@@ -8,7 +8,7 @@
 
 # ---- Subsetting / tokenizing / document feature matrix function ----
 
-subsetDTM <- function(dat, years) {
+subsetDTM <- function(dat, years, stopword_list) {
   
   # filter data & turn into corpus
   dat <- dat %>% filter(year%in%years)
@@ -18,9 +18,9 @@ subsetDTM <- function(dat, years) {
   tokens <- corp %>%
     tokens(remove_punct = TRUE, remove_numbers = TRUE, remove_symbols = TRUE) %>% 
     tokens_tolower() %>% 
-    tokens_replace(thesaurus$token, thesaurus$lemma, valuetype = "fixed") %>%
-    tokens_remove(pattern = stopwords_extended, padding = T)
-  
+    tokens_remove(pattern = stopword_list, padding = T) %>%
+    tokens_replace(thesaurus$token, thesaurus$lemma, valuetype = "fixed")
+    
   
   # identify candidate collocations
   collocations <- textstat_collocations(tokens, min_count = 5)
@@ -194,10 +194,10 @@ coocGraph3Tier <- function(dat, coocTerm, sd_multiplier, input_suffix) {
 # Uses parallel processing to produce co-occurrence graphs per year, per corpus.
 # Exports to .csv so that this function only needs to be run once per corpus.
 
-coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, coocTerm) {
+coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, coocTerm, stopword_list) {
   
   assign(paste("DTM_", input_suffix, sep = ""),
-         subsetDTM(dat = input_data, years = years))
+         subsetDTM(dat = input_data, years = years, stopword_list = stopword_list))
   
   # define the co-occurrences with "conservation", to be used to calculate significance value threshold across the corpus
   assign(paste("conservation_coocs_", input_suffix, sep = ""),
@@ -210,7 +210,7 @@ coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, co
   # subset DTMs by year
   DTM_byyear <- mclapply(years, function(i) {
     
-    subsetDTM(dat = input_data, years = i)
+    subsetDTM(dat = input_data, years = i, stopword_list = stopword_list)
     
   },  
   
@@ -223,9 +223,15 @@ coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, co
   }
   
   # Export document term matrices, to source in next time
+  
+  # Create output directories as needed (and for today's date)
+  dir.create("data/outputs/DTMs/")
+  dir.create(paste("data/outputs/DTMs/", format(Sys.Date(),"%Y%m%d"), sep = ""))
+  output_dir <- paste("data/outputs/DTMs/", format(Sys.Date(),"%Y%m%d"), sep = "")
+  
   for(i in 1:length(years)) {
     saveRDS(get(paste("DTM", input_suffix, years[i], sep = "_")),
-            paste("data/outputs/DTMs/DTM_", input_suffix, "_", years[i], ".rds", sep = ""))
+            paste(output_dir, "/DTM_", input_suffix, "_", years[i], ".rds", sep = ""))
   }
   
   # Create co-occurrence graph (COMPUTATIONALLY INTENSIVE)
@@ -245,9 +251,16 @@ coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, co
   }
   
   # Export co-occurrence graphs, to source in next time
+  
+  # Create output directories as needed (and for today's date)
+  dir.create("data/outputs/coocGraphs/")
+  dir.create(paste("data/outputs/coocGraphs/", format(Sys.Date(),"%Y%m%d"), sep = ""))
+  output_dir <- paste("data/outputs/coocGraphs/", format(Sys.Date(),"%Y%m%d"), sep = "")
+  
   for(i in 1:length(years)) {
-    export(get(paste("coocGraph", input_suffix, years[i], sep = "_")),
-           paste("data/outputs/coocGraphs/coocGraph", "_", input_suffix, "_", years[i], ".csv", sep = ""))
+    write.csv(get(paste("coocGraph", input_suffix, years[i], sep = "_")),
+              paste(output_dir, "/coocGraph_", input_suffix, "_", years[i], ".csv", sep = ""),
+              row.names = F)
   }
   
   
@@ -258,12 +271,16 @@ coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, co
 
 findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percentile_thresholds, coocTerm) {
   
+  most_recent_DTM_folder <- last(list.files("data/outputs/DTMs"))
+  most_recent_coocGraph_folder <- last(list.files("data/outputs/coocGraphs"))
+  
   for(i in 1:length(years)) {
     assign(paste("DTM", input_suffix, years[i], sep = "_"),
-           readRDS(paste("data/outputs/DTMs/DTM", "_", input_suffix, "_", years[i], ".rds", sep = "")))
+           readRDS(paste("data/outputs/DTMs/", most_recent_DTM_folder, "/DTM_", input_suffix, "_", years[i], ".rds", sep = "")))
     
     assign(paste("coocGraph", input_suffix, years[i], sep = "_"),
-           import(paste("data/outputs/coocGraphs/coocGraph", "_", input_suffix, "_", years[i], ".csv", sep = ""))
+           read_csv(paste("data/outputs/coocGraphs/", most_recent_coocGraph_folder, "/coocGraph_", input_suffix, "_", years[i], ".csv", sep = ""),
+                    locale = readr::locale(encoding = "UTF-8"))
     )
   }
   
@@ -309,7 +326,8 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
       
       quantiles <- as.data.frame(cbind(quantile = seq(0, 1, by = 0.05),
                                        consensus = as.numeric(quantile(node_attributes$consensus, 
-                                                                       seq(0, 1, by = 0.05))),
+                                                                       seq(0, 1, by = 0.05),
+                                                                       na.rm = T)),
                                        degree = as.numeric(quantile(node_attributes$degree, 
                                                                     seq(0, 1, by = 0.05))),
                                        conductivity = as.numeric(quantile(node_attributes$conductivity, 
@@ -361,8 +379,9 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
          envir = .GlobalEnv)
   
   # Export to easily pull in for next time?
-  export(get(paste("node_attributes_", input_suffix, sep = "")), 
-         paste("data/outputs/node_attributes_", input_suffix, ".csv", sep = ""))
+  write.csv(get(paste("node_attributes_", input_suffix, sep = "")), 
+            paste("data/outputs/node_attributes_", input_suffix, ".csv", sep = ""),
+            row.names = F)
   
   # Define clustering coefficients for each year's co-occurrence network
   clustering_coeffs <- 
@@ -378,6 +397,9 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
                      n_nodes = length(node),
                      avg_conductivity = mean(conductivity),
                      avg_degree = mean(degree),
+                     avg_consensus = mean(consensus, na.rm = T),
+                     sd_consensus = sd(consensus, na.rm = T),
+                     n_consensus_na = length(consensus[is.na(consensus)]),
                      n_placeholders = length(node[symbol_type=="placeholder" & !is.na(symbol_type)]),
                      n_buzzwords = length(node[symbol_type=="buzzword"  & !is.na(symbol_type)]),
                      n_standard = length(node[symbol_type=="standard"  & !is.na(symbol_type)]),
