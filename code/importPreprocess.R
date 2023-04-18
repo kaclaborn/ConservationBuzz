@@ -103,6 +103,10 @@ docs_a <- import_a %>%
          text = stringr::str_replace_all(text, 'î', ' ')) # general cleaning
 
 
+# write.csv(docs_a, "data/corpora/processed/docs_a.csv", row.names = FALSE, fileEncoding = "UTF-8")
+
+
+
 # Check number of article types & whether abstracts of certain types should be removed from corpus
 docs_a %>%
   group_by(type) %>%

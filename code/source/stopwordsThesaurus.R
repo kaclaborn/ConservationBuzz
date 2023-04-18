@@ -64,3 +64,7 @@ add_to_stopwords <- c(# "-ly" adverbs
 
 
 stopwords_extended <- c(stopwords(source = "smart"), add_to_stopwords)
+
+# Import parts-of-speech tagged stopwords list
+stopwords_extended_pos <- scan("code/source/stopwords_extended_pos.txt", character())
+
