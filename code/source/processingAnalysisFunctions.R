@@ -292,6 +292,12 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
     DTM <- get(paste("DTM", "_", input_suffix, "_", i, sep = ""))
     coocGraph <- get(paste("coocGraph", "_", input_suffix, "_", i, sep = ""))
     
+    require(Matrix)
+    require(slam)
+    if (is.simple_triplet_matrix(DTM)) {
+      DTM <- sparseMatrix(i=DTM$i, j=DTM$j, x=DTM$v, dims=c(DTM$nrow, DTM$ncol), dimnames = dimnames(DTM))
+    }
+    
     conductivity <- data.frame(conductivity = betweenness(graph.data.frame(coocGraph, directed = F)),
                                degree = degree(graph.data.frame(coocGraph, directed = F))) %>%
       mutate(node = rownames(.))
@@ -370,7 +376,7 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
     }
     
     assign(paste0("node_attributes", "_", input_suffix, "_", i, sep = ""), node_attributes_allthresholds, envir = .GlobalEnv)
-    
+
   }
   
   # Put all node attributes across years into a single data frame
