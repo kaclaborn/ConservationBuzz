@@ -18,7 +18,7 @@ options(dplyr.summarise.inform = FALSE)
 
 # ---- 1.1 Import libraries ----
 
-pacman::p_load(tidyverse, quanteda, quanteda.textstats, tidytext, qdap, 
+pacman::p_load(tidyverse, quanteda, quanteda.textstats, tidytext, 
                lexicon, stopwords, parallel, igraph)
 
 
@@ -60,8 +60,9 @@ percentile_thresholds <- c(0.3, 0.45, 0.5)
 
 # ---- 2.1 Import corpus documents ----
 
+docs_a <- read_csv("data/corpora/processed/doca_a.csv", locale = readr::locale(encoding = "UTF-8"))
 docs_n <- read_csv("data/corpora/processed/docs_n.csv", locale = readr::locale(encoding = "UTF-8"))
-docs_m <- read_csv("data/corpora/preprocessed/media/docs_m_filtered.csv", locale = readr::locale(encoding = "UTF-8"))
+docs_m <- read_csv("data/corpora/processed/docs_m_filtered.csv", locale = readr::locale(encoding = "UTF-8"))
 
 # ---- 2.2 Subset DTMs per year, create co-occurrence networks, and export to flat file ----
 ## COMPUTATIONALLY INTENSIVE -- ONLY RUN ONCE AND THEN SOURCE IN FLAT FILES TO DO ANALYSIS IN SECTION 3 AND BEYOND

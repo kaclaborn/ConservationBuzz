@@ -182,7 +182,8 @@ coocGraph3Tier <- function(dat, coocTerm, sd_multiplier, input_suffix) {
   # post-process output resultGraph data frame, readying for visualization
   resultGraph <- resultGraph %>%
     mutate(from = stringr::str_replace_all(from, "_", " "),
-           to = stringr::str_replace_all(to, "_", " "))
+           to = stringr::str_replace_all(to, "_", " "),
+           sd_multiplier = sd_multiplier)
   
   return(resultGraph)
   
@@ -194,7 +195,7 @@ coocGraph3Tier <- function(dat, coocTerm, sd_multiplier, input_suffix) {
 # Uses parallel processing to produce co-occurrence graphs per year, per corpus.
 # Exports to .csv so that this function only needs to be run once per corpus.
 
-coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, coocTerm, stopword_list) {
+coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, coocTerm, stopword_list, n_cores = 1) {
   
   assign(paste("DTM_", input_suffix, sep = ""),
          subsetDTM(dat = input_data, years = years, stopword_list = stopword_list))
@@ -242,7 +243,7 @@ coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, co
                    sd_multiplier = sd_multiplier,
                    input_suffix = input_suffix)
   },
-  mc.cores = length(years))
+  mc.cores = n_cores)
   
   
   for(i in 1:length(coocGraph_byyear)) {
@@ -321,7 +322,7 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
         mutate(lower.freq = ifelse(freq.x<freq.y, freq.x, freq.y)) %>%
         mutate(consensus = ifelse(coocFreq/lower.freq>=j, 1, 0)) %>% # if co-occurrence exists at least XX% of the time the less frequent of the two nodes is used, counts as "consensus"
         rename("node" = "from") %>%
-        group_by(node) %>%
+        group_by(node, sd_multiplier) %>%
         summarise(year = i,
                   consensus = sum(consensus) / length(node),
                   num_links = length(node),
