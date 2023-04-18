@@ -1,10 +1,10 @@
 
 # POS TAGGING
 
-pacman::p_load(tidyverse, quanteda, quanteda.textstats, udpipe,
-               tidytext, lexicon, stopwords, parallel, igraph)
+pacman::p_load(tidyverse, udpipe)
 
 set.seed(12345)
+
 
 # ---- import docs csvs for academic and media corpora (which will be tagged here) ----
 
