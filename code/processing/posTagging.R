@@ -83,8 +83,8 @@ words_toadd_m <-
 # -- add words to standard SMART stopword list
 stopwords_pos_extend <-
   c(stopwords(source = "smart"), 
-    words_toadd_a$token, words_toadd_a$lemma, 
-    words_toadd_m$token, words_toadd_m$lemma) %>% 
+    words_toadd_a$token,
+    words_toadd_m$token) %>% 
   unique(.)
 
 
