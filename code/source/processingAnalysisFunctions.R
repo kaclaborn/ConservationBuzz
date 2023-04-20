@@ -293,12 +293,6 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
     DTM <- get(paste("DTM", "_", input_suffix, "_", i, sep = ""))
     coocGraph <- get(paste("coocGraph", "_", input_suffix, "_", i, sep = ""))
     
-    require(Matrix)
-    require(slam)
-    if (is.simple_triplet_matrix(DTM)) {
-      DTM <- sparseMatrix(i=DTM$i, j=DTM$j, x=DTM$v, dims=c(DTM$nrow, DTM$ncol), dimnames = dimnames(DTM))
-    }
-    
     conductivity <- data.frame(conductivity = betweenness(graph.data.frame(coocGraph, directed = F)),
                                degree = degree(graph.data.frame(coocGraph, directed = F))) %>%
       mutate(node = rownames(.))
@@ -346,30 +340,30 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
           node_attributes %>%
           mutate(percentile_threshold = k,
                  symbol_type = 
-                   case_when(consensus<=as.numeric(quantiles$consensus[quantiles$quantile==k]) &
-                               degree<=as.numeric(quantiles$degree[quantiles$quantile==k]) & 
-                               conductivity<=as.numeric(quantiles$conductivity[quantiles$quantile==k]) ~ "ordinary",
-                             consensus>=as.numeric(quantiles$consensus[quantiles$quantile==(1-k)]) &
-                               degree<=as.numeric(quantiles$degree[quantiles$quantile==k]) & 
-                               conductivity<=as.numeric(quantiles$conductivity[quantiles$quantile==k]) ~ "factoid",
-                             consensus<=as.numeric(quantiles$consensus[quantiles$quantile==k]) &
-                               degree>=as.numeric(quantiles$degree[quantiles$quantile==(1-k)]) & 
-                               conductivity<=as.numeric(quantiles$conductivity[quantiles$quantile==k]) ~ "allusion",
-                             consensus<=as.numeric(quantiles$consensus[quantiles$quantile==k]) &
-                               degree<=as.numeric(quantiles$degree[quantiles$quantile==k]) & 
-                               conductivity>=as.numeric(quantiles$conductivity[quantiles$quantile==(1-k)]) ~ "buzzword",
-                             consensus>=as.numeric(quantiles$consensus[quantiles$quantile==(1-k)]) &
-                               degree>=as.numeric(quantiles$degree[quantiles$quantile==(1-k)]) & 
-                               conductivity<=as.numeric(quantiles$conductivity[quantiles$quantile==k]) ~ "stereotype",
-                             consensus>=as.numeric(quantiles$consensus[quantiles$quantile==(1-k)]) &
-                               degree<=as.numeric(quantiles$degree[quantiles$quantile==k]) & 
-                               conductivity>=as.numeric(quantiles$conductivity[quantiles$quantile==(1-k)]) ~ "emblem",
-                             consensus<=as.numeric(quantiles$consensus[quantiles$quantile==k]) &
-                               degree>=as.numeric(quantiles$degree[quantiles$quantile==(1-k)]) & 
-                               conductivity>=as.numeric(quantiles$conductivity[quantiles$quantile==(1-k)]) ~ "placeholder",
-                             consensus>=as.numeric(quantiles$consensus[quantiles$quantile==(1-k)]) &
-                               degree>=as.numeric(quantiles$degree[quantiles$quantile==(1-k)]) & 
-                               conductivity>=as.numeric(quantiles$conductivity[quantiles$quantile==(1-k)]) ~ "standard"))
+                   case_when(consensus<=as.numeric(quantiles %>% filter(quantile==k) %>% select(consensus)) &
+                               degree<=as.numeric(quantiles %>% filter(quantile==k) %>% select(degree)) & 
+                               conductivity<=as.numeric(quantiles %>% filter(quantile==k) %>% select(conductivity)) ~ "ordinary",
+                             consensus>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(consensus)) &
+                               degree<=as.numeric(quantiles %>% filter(quantile==k) %>% select(degree)) & 
+                               conductivity<=as.numeric(quantiles %>% filter(quantile==k) %>% select(conductivity)) ~ "factoid",
+                             consensus<=as.numeric(quantiles %>% filter(quantile==k) %>% select(consensus)) &
+                               degree>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(degree)) & 
+                               conductivity<=as.numeric(quantiles %>% filter(quantile==k) %>% select(conductivity)) ~ "allusion",
+                             consensus<=as.numeric(quantiles %>% filter(quantile==k) %>% select(consensus)) &
+                               degree<=as.numeric(quantiles %>% filter(quantile==k) %>% select(degree)) & 
+                               conductivity>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(conductivity)) ~ "buzzword",
+                             consensus>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(consensus)) &
+                               degree>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(degree)) & 
+                               conductivity<=as.numeric(quantiles %>% filter(quantile==k) %>% select(conductivity)) ~ "stereotype",
+                             consensus>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(consensus)) &
+                               degree<=as.numeric(quantiles %>% filter(quantile==k) %>% select(degree)) & 
+                               conductivity>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(conductivity)) ~ "emblem",
+                             consensus<=as.numeric(quantiles %>% filter(quantile==k) %>% select(consensus)) &
+                               degree>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(degree)) & 
+                               conductivity>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(conductivity)) ~ "placeholder",
+                             consensus>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(consensus)) &
+                               degree>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(degree)) & 
+                               conductivity>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(conductivity)) ~ "standard"))
         
         node_attributes_allthresholds <- rbind(node_attributes_percentile, node_attributes_allthresholds)
         
@@ -397,7 +391,7 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
     mutate(year = as.numeric(substr(rownames(.), 13, 16)))
   
   # Quick comparison across years
-  assign(paste("years_compare_", input_suffix),
+  assign(paste("years_compare_", input_suffix, sep = ""),
          get(paste("node_attributes_", input_suffix, sep = "")) %>%
            group_by(year, consensus_threshold, percentile_threshold) %>%
            summarise(focal_node = coocTerm, 
@@ -421,46 +415,4 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
            left_join(clustering_coeffs, by = "year"),
          envir = .GlobalEnv)
   
-  
-  assign(paste("buzzwords_compare_consensus25_", input_suffix, sep = ""),
-         get(paste("node_attributes_", input_suffix, sep = "")) %>%
-           filter(symbol_type=="buzzword" & consensus_threshold==0.25) %>%
-           group_by(node, consensus_threshold, percentile_threshold) %>%
-           summarise(total_freq = sum(freq),
-                     n_years = length(node),
-                     first_year = min(year),
-                     last_year = max(year),
-                     n_since2015 = length(node[year>=2015])),
-         envir = .GlobalEnv)
-  
-  
-  assign(paste("placeholders_compare_consensus25_", input_suffix, sep = ""),
-         get(paste("node_attributes_", input_suffix, sep = "")) %>%
-           filter(symbol_type=="placeholder" & consensus_threshold==0.25) %>%
-           group_by(node, consensus_threshold, percentile_threshold) %>%
-           summarise(total_freq = sum(freq),
-                     n_years = length(node),
-                     first_year = min(year),
-                     last_year = max(year),
-                     n_since2015 = length(node[year>=2015])),
-         envir = .GlobalEnv)
-  
 }
-
-
-# allusions_compare <-
-#   node_attributes_a %>%
-#   filter(symbol_type=="allusion") %>%
-#   group_by(node) %>%
-#   summarise(n_years = length(node),
-#             first_year = min(year),
-#             last_year = max(year))
-# 
-# standard_compare <-
-#   node_attributes_a %>%
-#   filter(symbol_type=="standard") %>%
-#   group_by(node) %>%
-#   summarise(n_years = length(node),
-#             first_year = min(year),
-#             last_year = max(year))
-# 
