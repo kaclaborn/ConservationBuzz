@@ -372,11 +372,10 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
         low_consensus <- as.numeric(quantiles %>% filter(quantile==as.character(k)) %>% select(consensus))
         high_consensus <- as.numeric(quantiles %>% filter(quantile==as.character(1-k)) %>% select(consensus))
         
-
         mean_rand_degree <- mean(rand_graph_degree)
 
         low_conductivity <- as.numeric(quantiles %>% filter(quantile==as.character(k)) %>% select(conductivity))
-        high_conductivity <- as.numeric(quantiles %>% filter(quantile==as.character(1-k)) %>% select(degree))
+        high_conductivity <- as.numeric(quantiles %>% filter(quantile==as.character(1-k)) %>% select(conductivity))
 
         node_attributes_percentile <-
           node_attributes %>%
@@ -467,6 +466,7 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
                      n_allusion = length(node[symbol_type=="allusion"  & !is.na(symbol_type)]),
                      n_factoid = length(node[symbol_type=="factoid"  & !is.na(symbol_type)]),
                      n_stereotype = length(node[symbol_type=="stereotype"  & !is.na(symbol_type)]),
+                     n_nosymbol = length(node[is.na(symbol_type)]),
                      placeholders_1_10 = list(node[symbol_type=="placeholder"  & !is.na(symbol_type)][1:10]),
                      buzzwords_1_10 = list(node[symbol_type=="buzzword"  & !is.na(symbol_type)][1:10]),
                      standard_1_10 = list(node[symbol_type=="standard"  & !is.na(symbol_type)][1:10])) %>%

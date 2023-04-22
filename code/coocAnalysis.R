@@ -75,8 +75,8 @@ coocGraphsPerYear(input_data = docs_m, input_suffix = "m", years = 2021,
 
  # ---- 2.3 Define node attributes per co-occurrence network, and compare across years ----
 
-findNodeAttributes(input_suffix = "n", 
-                   years = 2017:2021, 
+findNodeAttributes(input_suffix = "a", 
+                   years = 2000:2021, 
                    consensus_thresholds = c(0.25, 0.33, 0.5), 
                    percentile_thresholds = c(0.35, 0.4, 0.45, 0.5),
                    coocTerm = "conservation")
@@ -120,7 +120,11 @@ compare_symbol_types_n <-
   group_by(node, consensus_threshold, percentile_threshold) %>%
   mutate(buzzword_years = length(year[symbol_type=="buzzword" & !is.na(symbol_type)]),
          placeholder_years = length(year[symbol_type=="placeholder" & !is.na(symbol_type)]),
-         standard_years = length(year[symbol_type=="standard" & is.na(symbol_type)])) %>%
+         standard_years = length(year[symbol_type=="standard" & !is.na(symbol_type)])) %>%
+  ungroup() %>%
+  group_by(node, consensus_threshold, percentile_threshold, year) %>%
+  filter(row_number()==1) %>%
+  ungroup() %>%
   pivot_wider(id_cols = c(node, consensus_threshold, percentile_threshold, buzzword_years, placeholder_years, standard_years), 
               names_from = year, values_from = c(symbol_type, freq, rel_freq))
 
@@ -136,8 +140,19 @@ compare_symbol_types_n <-
 # 
 
 
-place_n_c0.5 <- placeholders_compare_n %>% filter(consensus_threshold==0.5)
-place_n_c0.33 <- placeholders_compare_n %>% filter(consensus_threshold==0.33)
+place_n_c0.5_t0.4 <- compare_symbol_types_n %>% filter(placeholder_years>0 &
+                                                         consensus_threshold==0.5 & 
+                                                         percentile_threshold==0.4)
+place_n_c0.5_t0.5 <- compare_symbol_types_n %>% filter(placeholder_years>0 &
+                                                         consensus_threshold==0.5 & 
+                                                         percentile_threshold==0.5)
+
+buzz_n_c0.5_t0.4 <- compare_symbol_types_n %>% filter(buzzword_years>0 &
+                                                         consensus_threshold==0.5 & 
+                                                         percentile_threshold==0.4)
+buzz_n_c0.5_t0.5 <- compare_symbol_types_n %>% filter(buzzword_years>0 &
+                                                         consensus_threshold==0.5 & 
+                                                         percentile_threshold==0.5)
 
 
 
