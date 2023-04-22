@@ -14,11 +14,12 @@
 #
 
 options(dplyr.summarise.inform = FALSE)
+options(spam.force64 = TRUE)
 
 
 # ---- 1.1 Import libraries ----
 
-pacman::p_load(tidyverse, quanteda, quanteda.textstats, tidytext, 
+pacman::p_load(spam, spam64, tidyverse, quanteda, quanteda.textstats, tidytext, 
                lexicon, stopwords, parallel, igraph)
 
 
@@ -61,7 +62,7 @@ percentile_thresholds <- c(0.3, 0.45, 0.5)
 
 # ---- 2.1 Import corpus documents ----
 
-docs_a <- read_csv("data/corpora/processed/doca_a.csv", locale = readr::locale(encoding = "UTF-8"))
+docs_a <- read_csv("data/corpora/processed/docs_a.csv", locale = readr::locale(encoding = "UTF-8"))
 docs_n <- read_csv("data/corpora/processed/docs_n.csv", locale = readr::locale(encoding = "UTF-8"))
 docs_m <- read_csv("data/corpora/processed/docs_m_filtered.csv", locale = readr::locale(encoding = "UTF-8"))
 
@@ -76,8 +77,8 @@ coocGraphsPerYear(input_data = docs_m, input_suffix = "m", years = 2021,
 
 findNodeAttributes(input_suffix = "n", 
                    years = 2017:2021, 
-                   consensus_thresholds = c(0.25, 0.33, 0.4, 0.45, 0.5), 
-                   percentile_thresholds = c(0.4, 0.5),
+                   consensus_thresholds = c(0.25, 0.33, 0.5), 
+                   percentile_thresholds = c(0.35, 0.4, 0.45, 0.5),
                    coocTerm = "conservation")
 
 
@@ -89,21 +90,50 @@ findNodeAttributes(input_suffix = "n",
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
 
-buzzwords_compare_n <-
-  node_attributes_n %>%
-  filter(symbol_type=="buzzword") %>%
-  pivot_wider(id_cols = c(node, consensus_threshold, percentile_threshold), names_from = year, values_from = symbol_type,
-              values_fn = length) %>%
-  rowwise() %>%
-  mutate(total_years = sum(c_across(3:length(colnames(.))-1), na.rm = T))
+# NOTE: frequency counts are counts of number of DOCUMENTS a term appears in, not a total word count.
 
-placeholders_compare_n <-
-  node_attributes_n %>%
-  filter(symbol_type=="placeholder") %>%
-  pivot_wider(id_cols = c(node, consensus_threshold, percentile_threshold), names_from = year, values_from = symbol_type,
-              values_fn = length) %>%
-  rowwise() %>%
-  mutate(total_years = sum(c_across(3:length(colnames(.))-1), na.rm = T))
+compare_symbol_types_a <-
+  node_attributes_a %>% 
+  select(-freq) %>%
+  left_join(graph_attr_a, by = "year") %>%
+  left_join(node_freq_a, by = c("node", "year")) %>%
+  rename("total_docs" = "ndoc") %>%
+  mutate(rel_freq = freq / total_docs) %>%
+  group_by(node, consensus_threshold, percentile_threshold) %>%
+  mutate(buzzword_years = length(year[symbol_type=="buzzword" & !is.na(symbol_type)]),
+         placeholder_years = length(year[symbol_type=="placeholder" & !is.na(symbol_type)]),
+         standard_years = length(year[symbol_type=="standard" & !is.na(symbol_type)])) %>%
+  ungroup() %>%
+  group_by(node, consensus_threshold, percentile_threshold, year) %>%
+  filter(row_number()==1) %>%
+  ungroup() %>%
+  pivot_wider(id_cols = c(node, consensus_threshold, percentile_threshold, buzzword_years, placeholder_years, standard_years), 
+              names_from = year, values_from = c(symbol_type, freq, rel_freq))
+
+compare_symbol_types_n <-
+  node_attributes_n %>% 
+  select(-freq) %>%
+  left_join(graph_attr_n, by = "year") %>%
+  left_join(node_freq_n, by = c("node", "year")) %>%
+  rename("total_docs" = "ndoc") %>%
+  mutate(rel_freq = freq / total_docs) %>%
+  group_by(node, consensus_threshold, percentile_threshold) %>%
+  mutate(buzzword_years = length(year[symbol_type=="buzzword" & !is.na(symbol_type)]),
+         placeholder_years = length(year[symbol_type=="placeholder" & !is.na(symbol_type)]),
+         standard_years = length(year[symbol_type=="standard" & is.na(symbol_type)])) %>%
+  pivot_wider(id_cols = c(node, consensus_threshold, percentile_threshold, buzzword_years, placeholder_years, standard_years), 
+              names_from = year, values_from = c(symbol_type, freq, rel_freq))
+
+# placeholders_compare_a <-
+#   node_attributes_a %>%
+#   filter(symbol_type=="placeholder") %>%
+#   left_join(graph_attr_a, by = "year") %>%
+#   rename("total_nodes" = "nodes") %>%
+#   mutate(rel_freq = freq / total_nodes) %>%
+#   group_by(node, consensus_threshold, percentile_threshold) %>%
+#   mutate(total_years = length(year)) %>%
+#   pivot_wider(id_cols = c(node, consensus_threshold, percentile_threshold, total_years), names_from = year, values_from = c(freq, rel_freq))
+# 
 
 
 place_n_c0.5 <- placeholders_compare_n %>% filter(consensus_threshold==0.5)

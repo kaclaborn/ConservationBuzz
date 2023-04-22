@@ -4,6 +4,9 @@
 
 # ---- Lemma data ----
 
+
+
+
 # Build upon hash_lemmas table from lexicon package
 
 add_to_lemma <- rbind(data.frame(token = "analyse", lemma = "analyze"),

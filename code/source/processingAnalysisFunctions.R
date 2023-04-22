@@ -272,9 +272,11 @@ coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, co
 
 findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percentile_thresholds, coocTerm) {
   
+  # find most recent folders to import data from
   most_recent_DTM_folder <- last(list.files("data/outputs/DTMs"))
   most_recent_coocGraph_folder <- last(list.files("data/outputs/coocGraphs"))
   
+  # import DTM and coocGraph data
   for(i in 1:length(years)) {
     assign(paste("DTM", input_suffix, years[i], sep = "_"),
            readRDS(paste("data/outputs/DTMs/", most_recent_DTM_folder, "/DTM_", input_suffix, "_", years[i], ".rds", sep = "")))
@@ -286,12 +288,38 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
   }
   
   
-  # Compare network metrics across years
+  # create empty object to hold all quantiles from network measures across years/thresholds
+  quantiles_allthresholds <- NULL
+  
+  
+  # --- Compare network metrics across years
   
   for(i in years){
     
     DTM <- get(paste("DTM", "_", input_suffix, "_", i, sep = ""))
     coocGraph <- get(paste("coocGraph", "_", input_suffix, "_", i, sep = ""))
+    docs <- get(paste("docs_", input_suffix, sep = ""))
+    
+    corpus_name <- ifelse(input_suffix=="a", "academic", 
+                          ifelse(input_suffix=="n", "ngo", 
+                                 ifelse(input_suffix=="m", "media", 
+                                        ifelse(input_suffix=="p", "policy", NA))))
+  
+    # get nodes and links per year i
+    graph_attr <- coocGraph %>%
+      summarise(links = length(from)) %>%
+      cbind.data.frame(nodes = length(unique(coocGraph$from)))
+    
+    # create random network to use as threshold basis for degree measure
+    # NOTE: size the random network based on the number of nodes and links of year i's coocGraph
+    assign("rand_graph", 
+           sample_gnm(graph_attr$nodes, 
+                      graph_attr$links), envir = .GlobalEnv)
+    
+    rand_graph_betweenness <- rand_graph %>% betweenness(.)
+    rand_graph_degree <- rand_graph %>% degree(.)
+    
+  
     
     conductivity <- data.frame(conductivity = betweenness(graph.data.frame(coocGraph, directed = F)),
                                degree = degree(graph.data.frame(coocGraph, directed = F))) %>%
@@ -300,12 +328,15 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
     
     nodeFreq <- data.frame(node = colnames(DTM),
                            freq = diag(t(DTM) %*% DTM)) %>%
-      mutate(node = stringr::str_replace_all(node, "_", " "))
+      mutate(node = stringr::str_replace_all(node, "_", " "),
+             year = i)
     
     # define empty object for all consensus & percentile thresholds to bind to for each year i
-    node_attributes_allthresholds <- NULL 
+    node_attributes_allthresholds <- NULL
     
-    # define node attributes for each consensus threshold j, for year i
+    
+    # --- Define node attributes for each consensus threshold j, for year i
+    
     for(j in consensus_thresholds){
       
       node_attributes <- 
@@ -317,8 +348,7 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
         mutate(consensus = ifelse(coocFreq/lower.freq>=j, 1, 0)) %>% # if co-occurrence exists at least XX% of the time the less frequent of the two nodes is used, counts as "consensus"
         rename("node" = "from") %>%
         group_by(node, sd_multiplier) %>%
-        summarise(year = i,
-                  consensus = sum(consensus) / length(node),
+        summarise(consensus = sum(consensus) / length(node),
                   num_links = length(node),
                   consensus_threshold = j) %>%
         left_join(nodeFreq, by = "node") %>%
@@ -327,74 +357,102 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
       
       quantiles <- as.data.frame(cbind(quantile = seq(0, 1, by = 0.05),
                                        consensus = as.numeric(quantile(node_attributes$consensus, 
-                                                                       seq(0, 1, by = 0.05),
-                                                                       na.rm = T)),
-                                       degree = as.numeric(quantile(node_attributes$degree, 
-                                                                    seq(0, 1, by = 0.05))),
+                                                                       seq(0, 1, by = 0.05))),
+                                       degree = mean(rand_graph_degree),
                                        conductivity = as.numeric(quantile(node_attributes$conductivity, 
-                                                                          seq(0, 1, by = 0.05)))))
+                                                                          seq(0, 1, by = 0.05))),
+                                       year = i,
+                                       consensus_threshold = j))
       
+      
+      # --- Define symbol type for each percentile threshold k (for low or high network measures)
+
       for(k in percentile_thresholds) {
         
-        node_attributes_percentile <- 
+        low_consensus <- as.numeric(quantiles %>% filter(quantile==as.character(k)) %>% select(consensus))
+        high_consensus <- as.numeric(quantiles %>% filter(quantile==as.character(1-k)) %>% select(consensus))
+        
+
+        mean_rand_degree <- mean(rand_graph_degree)
+
+        low_conductivity <- as.numeric(quantiles %>% filter(quantile==as.character(k)) %>% select(conductivity))
+        high_conductivity <- as.numeric(quantiles %>% filter(quantile==as.character(1-k)) %>% select(degree))
+
+        node_attributes_percentile <-
           node_attributes %>%
           mutate(percentile_threshold = k,
-                 symbol_type = 
-                   case_when(consensus<=as.numeric(quantiles %>% filter(quantile==k) %>% select(consensus)) &
-                               degree<=as.numeric(quantiles %>% filter(quantile==k) %>% select(degree)) & 
-                               conductivity<=as.numeric(quantiles %>% filter(quantile==k) %>% select(conductivity)) ~ "ordinary",
-                             consensus>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(consensus)) &
-                               degree<=as.numeric(quantiles %>% filter(quantile==k) %>% select(degree)) & 
-                               conductivity<=as.numeric(quantiles %>% filter(quantile==k) %>% select(conductivity)) ~ "factoid",
-                             consensus<=as.numeric(quantiles %>% filter(quantile==k) %>% select(consensus)) &
-                               degree>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(degree)) & 
-                               conductivity<=as.numeric(quantiles %>% filter(quantile==k) %>% select(conductivity)) ~ "allusion",
-                             consensus<=as.numeric(quantiles %>% filter(quantile==k) %>% select(consensus)) &
-                               degree<=as.numeric(quantiles %>% filter(quantile==k) %>% select(degree)) & 
-                               conductivity>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(conductivity)) ~ "buzzword",
-                             consensus>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(consensus)) &
-                               degree>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(degree)) & 
-                               conductivity<=as.numeric(quantiles %>% filter(quantile==k) %>% select(conductivity)) ~ "stereotype",
-                             consensus>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(consensus)) &
-                               degree<=as.numeric(quantiles %>% filter(quantile==k) %>% select(degree)) & 
-                               conductivity>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(conductivity)) ~ "emblem",
-                             consensus<=as.numeric(quantiles %>% filter(quantile==k) %>% select(consensus)) &
-                               degree>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(degree)) & 
-                               conductivity>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(conductivity)) ~ "placeholder",
-                             consensus>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(consensus)) &
-                               degree>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(degree)) & 
-                               conductivity>=as.numeric(quantiles %>% filter(quantile==(1-k)) %>% select(conductivity)) ~ "standard"))
-        
+                 consensus_score = ifelse(consensus<=low_consensus, "low", ifelse(consensus>high_consensus, "high", "neither")),
+                 degree_score = ifelse(degree<mean_rand_degree, "low", "high"),
+                 conductivity_score = ifelse(conductivity<low_conductivity, "low", ifelse(conductivity>high_conductivity, "high", "neither")),
+                 symbol_type = case_when(consensus_score=="low" & degree_score=="low" & conductivity_score=="low" ~ "ordinary",
+                                         consensus_score=="high" & degree_score=="low" & conductivity_score=="low" ~ "factoid",
+                                         consensus_score=="low" & degree_score=="high" & conductivity_score=="low" ~ "allusion",
+                                         consensus_score=="low" & degree_score=="low" & conductivity_score=="high" ~ "buzzword",
+                                         consensus_score=="high" & degree_score=="high" & conductivity_score=="low" ~ "stereotype",
+                                         consensus_score=="high" & degree_score=="low" & conductivity_score=="high" ~ "emblem",
+                                         consensus_score=="low" & degree_score=="high" & conductivity_score=="high" ~ "placeholder",
+                                         consensus_score=="high" & degree_score=="high" & conductivity_score=="high" ~ "standard"))
+
         node_attributes_allthresholds <- rbind(node_attributes_percentile, node_attributes_allthresholds)
-        
+        quantiles_allthresholds <- rbind(quantiles, quantiles_allthresholds)
+
       }
     }
-    
-    assign(paste0("node_attributes", "_", input_suffix, "_", i, sep = ""), node_attributes_allthresholds, envir = .GlobalEnv)
+
+    assign(paste0("node_attributes_", input_suffix, "_", i, sep = ""), node_attributes_allthresholds, envir = .GlobalEnv)
+    assign(paste("node_freq_", input_suffix, "_", i, sep = ""), nodeFreq, envir = .GlobalEnv)
+      
+    # get graph attributes per year for summary stats
+    assign(paste("graph_attr_", input_suffix, "_", i, sep = ""),
+           coocGraph %>%
+             summarise(links = length(from)) %>%
+             cbind.data.frame(nodes = length(unique(coocGraph$from)),
+                              ndoc = length(docs$text[docs$year==i]),
+                              nwords_avg = round(mean(ntoken(DTM))), #NOTE: these are number of words after stopwords removed
+                              nwords_sd = sd(ntoken(DTM)),
+                              nwords_min = min(ntoken(DTM)),
+                              nwords_max = max(ntoken(DTM)),
+                              year = i,
+                              corpus = corpus_name),
+           envir = .GlobalEnv)
 
   }
-  
-  # Put all node attributes across years into a single data frame
+
+  # Put all node attributes & frequencies across years into single data frames
   assign(paste("node_attributes_", input_suffix, sep = ""),
-         do.call(rbind, lapply(paste0("node_attributes", "_", input_suffix, "_", years, sep = ""), get) ),
+         do.call(rbind, lapply(paste0("node_attributes_", input_suffix, "_", years, sep = ""), get) ),
          envir = .GlobalEnv)
   
+  assign(paste("node_freq_", input_suffix, sep = ""),
+         do.call(rbind, lapply(paste0("node_freq_", input_suffix, "_", years, sep = ""), get) ),
+         envir = .GlobalEnv)
+
+  # Put all graph attributes across years into a single data frame
+  assign(paste("graph_attr_", input_suffix, sep = ""),
+         do.call(rbind, lapply(paste0("graph_attr_", input_suffix, "_", years, sep = ""), get) ),
+         envir = .GlobalEnv)
+
+  # Assign quantiles to an object in global environment
+  assign(paste("quantiles_", input_suffix, "_allthresholds", sep = ""),
+         get("quantiles_allthresholds", inherits = T),
+         envir = .GlobalEnv)
+
   # Export to easily pull in for next time?
-  write.csv(get(paste("node_attributes_", input_suffix, sep = "")), 
+  write.csv(get(paste("node_attributes_", input_suffix, sep = "")),
             paste("data/outputs/node_attributes_", input_suffix, ".csv", sep = ""),
             row.names = F)
-  
+
   # Define clustering coefficients for each year's co-occurrence network
-  clustering_coeffs <- 
-    data.frame(coeff = mapply(i = paste0("coocGraph", "_", input_suffix, "_", years), 
+  clustering_coeffs <-
+    data.frame(coeff = mapply(i = paste0("coocGraph", "_", input_suffix, "_", years),
                               function(i) {transitivity(graph.data.frame(get(i), directed = F))})) %>%
     mutate(year = as.numeric(substr(rownames(.), 13, 16)))
-  
+
   # Quick comparison across years
   assign(paste("years_compare_", input_suffix, sep = ""),
          get(paste("node_attributes_", input_suffix, sep = "")) %>%
            group_by(year, consensus_threshold, percentile_threshold) %>%
-           summarise(focal_node = coocTerm, 
+           summarise(focal_node = coocTerm,
                      n_nodes = length(node),
                      avg_conductivity = mean(conductivity),
                      avg_degree = mean(degree),
@@ -414,5 +472,6 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
                      standard_1_10 = list(node[symbol_type=="standard"  & !is.na(symbol_type)][1:10])) %>%
            left_join(clustering_coeffs, by = "year"),
          envir = .GlobalEnv)
-  
-}
+
+    }
+
