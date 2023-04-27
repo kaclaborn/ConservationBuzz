@@ -440,6 +440,14 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
   write.csv(get(paste("node_attributes_", input_suffix, sep = "")),
             paste("data/outputs/node_attributes_", input_suffix, ".csv", sep = ""),
             row.names = F)
+  
+  write.csv(get(paste("node_freq_", input_suffix, sep = "")),
+            paste("data/outputs/node_freq_", input_suffix, ".csv", sep = ""),
+            row.names = F)
+  
+  write.csv(get(paste("graph_attr_", input_suffix, sep = "")),
+            paste("data/outputs/graph_attr_", input_suffix, ".csv", sep = ""),
+            row.names = F)
 
   # Define clustering coefficients for each year's co-occurrence network
   clustering_coeffs <-

@@ -15,7 +15,7 @@ calculateCoocStatistics <- function(term, binDTM, measure = "DICE") {
   
   # calculate cooccurrence counts
   coocCounts <- t(binDTM) %*% binDTM
-  
+
   # retrieve numbers for statistic calculation
   k <- nrow(binDTM)
   ki <- sum(binDTM[, term])

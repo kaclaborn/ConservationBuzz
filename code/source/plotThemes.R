@@ -1,6 +1,6 @@
 
 lollipop.plot.theme <- 
-  theme(plot.title = element_text(size = 20,
+  theme(plot.title = element_text(size = 16,
                                   colour = "#303030",
                                   face = "bold"),
         plot.subtitle = element_text(size = 11,
@@ -25,3 +25,8 @@ lollipop.plot.theme <-
                                  angle = 0,
                                  colour = "#303030",
                                  lineheight = 0.7))
+
+
+lollipop.legend.guide <- guides(size = guide_legend(order = 1,
+                                                    keyheight = unit(0.5, "cm")),
+                                color = guide_legend(order = 2))
