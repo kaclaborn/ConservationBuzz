@@ -4,6 +4,9 @@ pacman::p_load(spam, spam64, ggplot2, grid, gridExtra)
 options(spam.force64 = TRUE)
 colSums(DTM_example)
 
+source("code/source/plotThemes.R")
+
+
 # Visualize the top terms per symbol type
 
 makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, corpus, symbol, consensus, percentile) {
@@ -19,10 +22,10 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, c
       filter(get(paste(symbol, "_years_2017_2021", sep = ""))>0 &
                consensus_threshold==consensus &
                percentile_threshold==percentile) %>%
-      mutate(most_recent_year = ifelse(!is.na(rel_freq_2021), 2021, 
-                                       ifelse(!is.na(rel_freq_2020), 2020, 
-                                              ifelse(!is.na(rel_freq_2019), 2019, 
-                                                     ifelse(!is.na(rel_freq_2018), 2018, 2017)))),
+      mutate(most_recent_year = ifelse(symbol_type_2021==symbol & !is.na(symbol_type_2021), 2021, 
+                                       ifelse(symbol_type_2020==symbol & !is.na(symbol_type_2020), 2020, 
+                                              ifelse(symbol_type_2019==symbol & !is.na(symbol_type_2019), 2019, 
+                                                     ifelse(symbol_type_2018==symbol & !is.na(symbol_type_2018), 2018, 2017)))),
              rel_freq = case_when(most_recent_year==2021 ~ rel_freq_2021,
                                   most_recent_year==2020 ~ rel_freq_2020,
                                   most_recent_year==2019 ~ rel_freq_2019, 
