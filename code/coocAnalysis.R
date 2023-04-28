@@ -19,7 +19,9 @@ options(spam.force64 = TRUE)
 
 # ---- 1.1 Import libraries ----
 
-pacman::p_load(spam, spam64, tidyverse, quanteda, quanteda.textstats, tidytext, 
+pacman::p_load(spam, spam64)
+
+pacman::p_load(tidyverse, quanteda, quanteda.textstats, tidytext, 
                lexicon, stopwords, parallel, igraph)
 
 
@@ -60,23 +62,38 @@ percentile_thresholds <- c(0.3, 0.45, 0.5)
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
 
+
 # ---- 2.1 Import corpus documents ----
 
 docs_a <- read_csv("data/corpora/processed/docs_a.csv", locale = readr::locale(encoding = "UTF-8"))
 docs_n <- read_csv("data/corpora/processed/docs_n.csv", locale = readr::locale(encoding = "UTF-8"))
-docs_m <- read_csv("data/corpora/processed/docs_m_filtered.csv", locale = readr::locale(encoding = "UTF-8"))
+docs_m <- read_csv("data/corpora/processed/docs_m.csv", locale = readr::locale(encoding = "UTF-8"))
 
-# ---- 2.2 Subset DTMs per year, create co-occurrence networks, and export to flat file ----
+
+# ---- 2.2 Subset corpus docs as needed ----
+
+docs_m_nyt <- docs_m %>%
+  filter(grepl("NewYorkTimes", publication)==T)
+
+docs_m_nyt_filt <- 
+  docs_m_nyt %>%
+  filter(grepl("conservation|sustainability|natural resource|climate change|global warming|environmental protection|species", 
+               subject, ignore.case = T)==T)
+
+
+# ---- 2.3 Subset DTMs per year, create co-occurrence networks, and export to flat file ----
 ## COMPUTATIONALLY INTENSIVE -- ONLY RUN ONCE AND THEN SOURCE IN FLAT FILES TO DO ANALYSIS IN SECTION 3 AND BEYOND
 
-coocGraphsPerYear(input_data = docs_m, input_suffix = "a", years = 2000:2016, 
-                  coocTerm = "conservation", sd_multiplier = 4, stopword_list = stopwords_extended_pos)
+coocGraphsPerYear(input_data = docs_n, input_suffix = "n", years = 2017:2021, 
+                  sd_multiplier = 4, stopword_list = stopwords_extended,
+                  coocTerm = "conservation",
+                  n_cores = length(2017:2021))
 
 
- # ---- 2.3 Define node attributes per co-occurrence network, and compare across years ----
+ # ---- 2.4 Define node attributes per co-occurrence network, and compare across years ----
 
-findNodeAttributes(input_suffix = "n", 
-                   years = 2017:2021, 
+findNodeAttributes(input_suffix = "a", 
+                   years = 2000:2021, 
                    consensus_thresholds = c(0.25, 0.33, 0.5), 
                    percentile_thresholds = c(0.35, 0.4, 0.45, 0.5),
                    coocTerm = "conservation")
@@ -148,11 +165,11 @@ compare_symbol_types_n <-
   pivot_wider(id_cols = c(node, consensus_threshold, percentile_threshold, buzzword_years_2017_2021, placeholder_years_2017_2021, standard_years), 
               names_from = year, values_from = c(symbol_type, freq, rel_freq))
 
-compare_symbol_types_m <-
-  node_attributes_m %>% 
+compare_symbol_types_m_nyt <-
+  node_attributes_m_nyt_filt %>% 
   select(-freq) %>%
-  left_join(graph_attr_m, by = "year") %>%
-  left_join(node_freq_m, by = c("node", "year")) %>%
+  left_join(graph_attr_m_nyt_filt, by = "year") %>%
+  left_join(node_freq_m_nyt_filt, by = c("node", "year")) %>%
   rename("total_docs" = "ndoc") %>%
   mutate(rel_freq = freq / total_docs) %>%
   group_by(node, consensus_threshold, percentile_threshold) %>%

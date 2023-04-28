@@ -29,14 +29,16 @@ subsetDTM <- function(dat, years, stopword_list) {
   collocations <- collocations[1:500, ]
   }
   
-  tokens <- tokens_compound(tokens, collocations)
+  tokens <- 
+    tokens_compound(tokens, collocations) %>%
+    tokens_remove(pattern = collocates_stopwords, padding = T)
   
   
   # create DTM, prune vocabulary and set binary values for presence/absence of types
   binDTM <- tokens %>% 
     tokens_remove("") %>%
     dfm() %>% 
-    dfm_trim(min_docfreq = 0.002, max_docfreq = 1, docfreq_type = "prop") %>%  # only include tokens that exist across at least 0.2% of documents
+    dfm_trim(min_docfreq = 0.01, max_docfreq = 1, docfreq_type = "prop") %>%  # only include tokens that exist across at least 1% of documents
     dfm_weight("boolean")
   
   return(binDTM)
@@ -46,147 +48,147 @@ subsetDTM <- function(dat, years, stopword_list) {
 
 # ---- Co-occurrence graph function ----
 
-# "Three-tier" network development procedure, finding significant co-occurrences using DICE coefficient threshold 
-# based on the average DICE coefficient for all "conservation" co-occurrences for a given corpus.
+# "Three-tier" network development procedure, finding significant co-occurrences (starting with "conservation" co-occurrences)
+# using DICE coefficient threshold & based on the average DICE coefficient for all "conservation" co-occurrences for a given corpus.
 
 coocGraph3Tier <- function(dat, coocTerm, sd_multiplier, input_suffix) {
-  
+
   # Define parameters for the central co-occurrence term of interest & number of co-occurrences to include in analysis
   coocTerm <- coocTerm
   counts <- t(dat) %*% dat
-  
-  # Identify the significance value a number of std deviations above the average DICE coefficient 
+
+  # Identify the significance value a number of std deviations above the average DICE coefficient
   # for all co-occurrences associated with the central coocTerm ("conservation") across the full corpus
-  get_sigval <- get(paste("conservation_coocs_", input_suffix, sep = ""))
+  get_sigval <- get(paste(coocTerm, "_coocs_", input_suffix, sep = ""))
   sigval <- mean(get_sigval$sig) + sd_multiplier*sd(get_sigval$sig)
-  
-  
+
+
   # Calculate statistics for coocTerm, keeping all terms that are significant at a pre-specified significance value
   coocs <- data.frame(sig = calculateCoocStatistics(coocTerm, dat, measure = "DICE")) %>%
-    mutate(word = rownames(.)) 
-  
-  
-  
+    mutate(word = rownames(.))
+
+
+
   coocs <- coocs %>%
     filter(sig>=sigval)
-  
-  
-  # Create dummy data frame for results 
-  resultGraph <- data.frame(from = character(), 
-                            to = character(), 
+
+
+  # Create dummy data frame for results
+  resultGraph <- data.frame(from = character(),
+                            to = character(),
                             sig = numeric(0),
                             cooc = character())
-  
+
   # Create running list of already-calculated search terms (to avoid re-running them in third tier)
   alreadyCalculated <- c(coocTerm)
-  
+
   # Structure of the temporary graph object is equal to that of the resultGraph
-  tmpGraph <- data.frame(from = coocTerm, 
-                         to = coocs$word, 
+  tmpGraph <- data.frame(from = coocTerm,
+                         to = coocs$word,
                          sig = coocs$sig) %>%
-    mutate(cooc1 = paste(from, to, sep = "-"), 
+    mutate(cooc1 = paste(from, to, sep = "-"),
            cooc2 = paste(to, from, sep = "-")) %>%
     pivot_longer(cols = c(cooc1, cooc2), values_to = "cooc") %>%
     group_by(from, to, sig) %>%
-    summarise(cooc = sort(cooc)[1]) %>% 
+    summarise(cooc = sort(cooc)[1]) %>%
     ungroup()
-  
-  
+
+
   # attach the triples to resultGraph
   resultGraph <- rbind.data.frame(resultGraph, tmpGraph)
-  
-  
+
+
   # iterate over the most significant co-occurrences of the search term
   for (i in 1:length(coocs$word)){
-    
-    
+
+
     # calling up the co-occurrence calculation for term i from the search words co-occurrences
     newCoocTerm <- coocs$word[i]
-    
+
     # append new term to running list of already-calculated search terms
     alreadyCalculated <- append(newCoocTerm, alreadyCalculated)
-    
+
     coocs2 <- data.frame(sig = calculateCoocStatistics(newCoocTerm, dat, measure = "DICE")) %>%
       mutate(word = rownames(.)) %>%
       filter(sig>=sigval)
-    
+
     # print the co-occurrences
     print(toupper(newCoocTerm))
-    
-    
+
+
     # structure of the temporary graph object
-    tmpGraph <- data.frame(from = newCoocTerm, 
-                           to = coocs2$word, 
+    tmpGraph <- data.frame(from = newCoocTerm,
+                           to = coocs2$word,
                            sig = coocs2$sig) %>%
-      mutate(cooc1 = paste(from, to, sep = "-"), 
+      mutate(cooc1 = paste(from, to, sep = "-"),
              cooc2 = paste(to, from, sep = "-")) %>%
       pivot_longer(cols = c(cooc1, cooc2), values_to = "cooc") %>%
       group_by(from, to, sig) %>%
       summarise(cooc = sort(cooc)[1]) %>%
       ungroup()
-    
-    
+
+
     # append the result to the result graph
     resultGraph <- rbind.data.frame(resultGraph, tmpGraph)
-    
+
     for (j in 1:length(coocs2$word)) {
-      
+
       # calling up the co-occurrence calculation for term j from the search words co-occurrences
       newCoocTerm2 <- coocs2$word[j]
-      
+
       if(!newCoocTerm2%in%alreadyCalculated){
-        
+
         coocs3 <- data.frame(sig = calculateCoocStatistics(newCoocTerm2, dat, measure = "DICE")) %>%
           mutate(word = rownames(.)) %>%
           filter(sig>=sigval)
-        
+
         # append new term to running list of already-calculated search terms
         alreadyCalculated <- append(newCoocTerm2, alreadyCalculated)
-        
+
         # print the co-occurrences
-        print(paste("Tier 2: ", coocs$word[i], " (", i, " of ", length(coocs$word), ")", "; ", 
+        print(paste("Tier 2: ", coocs$word[i], " (", i, " of ", length(coocs$word), ")", "; ",
                     coocs2$word[j], " (", j, " of ", length(coocs2$word), ")", "; ", length(coocs3$word), " co-occurrences",
                     sep = ""))
-        
-        
+
+
         # structure of the temporary graph object
-        tmpGraph2 <- data.frame(from = newCoocTerm2, 
-                                to = coocs3$word, 
+        tmpGraph2 <- data.frame(from = newCoocTerm2,
+                                to = coocs3$word,
                                 sig = coocs3$sig) %>%
-          mutate(cooc1 = paste(from, to, sep = "-"), 
+          mutate(cooc1 = paste(from, to, sep = "-"),
                  cooc2 = paste(to, from, sep = "-")) %>%
           pivot_longer(cols = c(cooc1, cooc2), values_to = "cooc") %>%
           group_by(from, to, sig) %>%
           summarise(cooc = sort(cooc)[1]) %>%
           ungroup()
-        
+
         # append the result to the result graph
         resultGraph <- rbind.data.frame(resultGraph, tmpGraph2)
       }
     }
   }
-  
+
   # remove an NA row from output network
   resultGraph <- resultGraph %>% filter(!is.na(from) & !is.na(to))
-  
-  
+
+
   # identify number of co-occurrences across the corpus per observation in output network
   coocFreq <- numeric(0)
-  
+
   for(i in 1:nrow(resultGraph)) {
     coocFreq[i] <- counts[resultGraph$from[i], resultGraph$to[i]]
   }
-  
+
   resultGraph <- cbind(resultGraph, coocFreq)
-  
+
   # post-process output resultGraph data frame, readying for visualization
   resultGraph <- resultGraph %>%
     mutate(from = stringr::str_replace_all(from, "_", " "),
            to = stringr::str_replace_all(to, "_", " "),
            sd_multiplier = sd_multiplier)
-  
+
   return(resultGraph)
-  
+
 }
 
 
@@ -196,76 +198,206 @@ coocGraph3Tier <- function(dat, coocTerm, sd_multiplier, input_suffix) {
 # Exports to .csv so that this function only needs to be run once per corpus.
 
 coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, coocTerm, stopword_list, n_cores = 1) {
-  
+
   assign(paste("DTM_", input_suffix, sep = ""),
          subsetDTM(dat = input_data, years = years, stopword_list = stopword_list))
-  
+
   # define the co-occurrences with "conservation", to be used to calculate significance value threshold across the corpus
-  assign(paste("conservation_coocs_", input_suffix, sep = ""),
-         data.frame(sig = calculateCoocStatistics("conservation", 
-                                                  get(paste("DTM_", input_suffix, sep = "")), 
+  assign(paste(coocTerm, "_coocs_", input_suffix, sep = ""),
+         data.frame(sig = calculateCoocStatistics(coocTerm,
+                                                  get(paste("DTM_", input_suffix, sep = "")),
                                                   measure = "DICE")) %>%
            mutate(word = rownames(.)),
          envir = .GlobalEnv)
-  
+
   # subset DTMs by year
   DTM_byyear <- mclapply(years, function(i) {
-    
+
     subsetDTM(dat = input_data, years = i, stopword_list = stopword_list)
-    
-  },  
-  
+
+  },
+
   mc.cores = length(years))
 
-  
+
   for(i in 1:length(DTM_byyear)) {
-    assign(paste("DTM", input_suffix, years[i], sep = "_"), 
+    assign(paste("DTM", input_suffix, years[i], sep = "_"),
            DTM_byyear[[i]])
   }
-  
+
   # Export document term matrices, to source in next time
-  
+
   # Create output directories as needed (and for today's date)
   dir.create("data/outputs/DTMs/")
   dir.create(paste("data/outputs/DTMs/", format(Sys.Date(),"%Y%m%d"), sep = ""))
   output_dir <- paste("data/outputs/DTMs/", format(Sys.Date(),"%Y%m%d"), sep = "")
-  
+
   for(i in 1:length(years)) {
     saveRDS(get(paste("DTM", input_suffix, years[i], sep = "_")),
             paste(output_dir, "/DTM_", input_suffix, "_", years[i], ".rds", sep = ""))
   }
-  
+
   # Create co-occurrence graph (COMPUTATIONALLY INTENSIVE)
   coocGraph_byyear <- mclapply(years, function(i) {
-    
-    coocGraph3Tier(dat = get(paste("DTM", input_suffix, i, sep = "_")), 
-                   coocTerm = coocTerm, 
+
+    coocGraph3Tier(dat = get(paste("DTM", input_suffix, i, sep = "_")),
+                   coocTerm = coocTerm,
                    sd_multiplier = sd_multiplier,
                    input_suffix = input_suffix)
   },
   mc.cores = n_cores)
-  
-  
+
+
   for(i in 1:length(coocGraph_byyear)) {
-    assign(paste("coocGraph", input_suffix, years[i], sep = "_"), 
+    assign(paste("coocGraph", input_suffix, years[i], sep = "_"),
            coocGraph_byyear[[i]])
   }
-  
+
   # Export co-occurrence graphs, to source in next time
-  
+
   # Create output directories as needed (and for today's date)
   dir.create("data/outputs/coocGraphs/")
   dir.create(paste("data/outputs/coocGraphs/", format(Sys.Date(),"%Y%m%d"), sep = ""))
   output_dir <- paste("data/outputs/coocGraphs/", format(Sys.Date(),"%Y%m%d"), sep = "")
-  
+
   for(i in 1:length(years)) {
     write.csv(get(paste("coocGraph", input_suffix, years[i], sep = "_")),
               paste(output_dir, "/coocGraph_", input_suffix, "_", years[i], ".csv", sep = ""),
               row.names = F)
   }
-  
-  
+
+
 }
+
+# coocGraphNewMethod <- function(dat, sd_multiplier, input_suffix){
+#   # Define parameters for the central co-occurrence term of interest & number of co-occurrences to include in analysis
+#   
+#   counts <- t(dat) %*% dat
+#   coocTerm <- colnames(counts)
+#   
+#   
+#   # Identify the significance value a number of std deviations above the average DICE coefficient 
+#   # for all co-occurrences associated with the central coocTerm ("conservation") across the full corpus
+#   get_sigval <- data.frame(sig = calculateCoocStatistics("conservation", dat, measure = "DICE")) %>%
+#     mutate(word = rownames(.))
+#   sigval <- mean(get_sigval$sig) + sd_multiplier*sd(get_sigval$sig)
+#   
+#   coocs <- data.frame(from = character(),
+#                       sig = numeric(0),
+#                       to = character())
+#   
+#   for(i in 1:length(coocTerm)) {
+#     # Calculate statistics for coocTerm, keeping all terms that are significant at a pre-specified significance value
+#     coocs <- rbind.data.frame(coocs,
+#                               data.frame(from = coocTerm[i],
+#                                          sig = calculateCoocStatistics(coocTerm[i], dat, measure = "DICE")) %>%
+#                                 mutate(to = rownames(.)) %>%
+#                                 filter(sig>=sigval))
+#     
+#   }
+#   
+#   resultGraph <-
+#     coocs %>%
+#     mutate(cooc1 = paste(from, to, sep = "-"), 
+#            cooc2 = paste(to, from, sep = "-")) %>%
+#     pivot_longer(cols = c(cooc1, cooc2), values_to = "cooc") %>%
+#     group_by(from, to, sig) %>%
+#     summarise(cooc = sort(cooc)[1]) %>%
+#     ungroup()
+#   
+#   # remove an NA row from output network
+#   resultGraph <- resultGraph %>% filter(!is.na(from) & !is.na(to))
+#   
+#   
+#   # identify number of co-occurrences across the corpus per observation in output network
+#   coocFreq <- numeric(0)
+#   
+#   for(i in 1:nrow(resultGraph)) {
+#     coocFreq[i] <- counts[resultGraph$from[i], resultGraph$to[i]]
+#   }
+#   
+#   resultGraph <- cbind(resultGraph, coocFreq)
+#   
+#   # post-process output resultGraph data frame, readying for visualization
+#   resultGraph <- resultGraph %>%
+#     mutate(from = stringr::str_replace_all(from, "_", " "),
+#            to = stringr::str_replace_all(to, "_", " "),
+#            sd_multiplier = sd_multiplier)
+#   
+#   return(resultGraph)
+#   
+# }
+# 
+# coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, stopword_list, n_cores = 1) {
+#   
+#   assign(paste("DTM_", input_suffix, sep = ""),
+#          subsetDTM(dat = input_data, years = years, stopword_list = stopword_list))
+#   
+#   # define the co-occurrences with "conservation", to be used to calculate significance value threshold across the corpus
+#   assign(paste("conservation_coocs_", input_suffix, sep = ""),
+#          data.frame(sig = calculateCoocStatistics("conservation", 
+#                                                   get(paste("DTM_", input_suffix, sep = "")), 
+#                                                   measure = "DICE")) %>%
+#            mutate(word = rownames(.)),
+#          envir = .GlobalEnv)
+#   
+#   # subset DTMs by year
+#   DTM_byyear <- mclapply(years, function(i) {
+#     
+#     subsetDTM(dat = input_data, years = i, stopword_list = stopword_list)
+#     
+#   },  
+#   
+#   mc.cores = length(years))
+#   
+#   
+#   for(i in 1:length(DTM_byyear)) {
+#     assign(paste("DTM", input_suffix, years[i], sep = "_"), 
+#            DTM_byyear[[i]])
+#   }
+#   
+#   # Export document term matrices, to source in next time
+#   
+#   # Create output directories as needed (and for today's date)
+#   dir.create("data/outputs/DTMs/")
+#   dir.create(paste("data/outputs/DTMs/", format(Sys.Date(),"%Y%m%d"), sep = ""))
+#   output_dir <- paste("data/outputs/DTMs/", format(Sys.Date(),"%Y%m%d"), sep = "")
+#   
+#   for(i in 1:length(years)) {
+#     saveRDS(get(paste("DTM", input_suffix, years[i], sep = "_")),
+#             paste(output_dir, "/DTM_", input_suffix, "_", years[i], ".rds", sep = ""))
+#   }
+#   
+#   # Create co-occurrence graph (COMPUTATIONALLY INTENSIVE)
+#   coocGraph_byyear <- mclapply(years, function(i) {
+#     
+#     coocGraphNewMethod(dat = get(paste("DTM", input_suffix, i, sep = "_")), 
+#                        sd_multiplier = sd_multiplier,
+#                        input_suffix = input_suffix)
+#   },
+#   mc.cores = n_cores)
+#   
+#   
+#   for(i in 1:length(coocGraph_byyear)) {
+#     assign(paste("coocGraph", input_suffix, years[i], sep = "_"), 
+#            coocGraph_byyear[[i]])
+#   }
+#   
+#   # Export co-occurrence graphs, to source in next time
+#   
+#   # Create output directories as needed (and for today's date)
+#   dir.create("data/outputs/coocGraphs/")
+#   dir.create(paste("data/outputs/coocGraphs/", format(Sys.Date(),"%Y%m%d"), sep = ""))
+#   output_dir <- paste("data/outputs/coocGraphs/", format(Sys.Date(),"%Y%m%d"), sep = "")
+#   
+#   for(i in 1:length(years)) {
+#     write.csv(get(paste("coocGraph", input_suffix, years[i], sep = "_")),
+#               paste(output_dir, "/coocGraph_", input_suffix, "_", years[i], ".csv", sep = ""),
+#               row.names = F)
+#   }
+#   
+#   
+# }
 
 
 # ---- Function to source in pre-exported DTMs and coocGraphs and calculate basic network measures ----
@@ -304,11 +436,13 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
                           ifelse(input_suffix=="n", "ngo", 
                                  ifelse(input_suffix=="m", "media", 
                                         ifelse(input_suffix=="p", "policy", NA))))
-  
+    
     # get nodes and links per year i
     graph_attr <- coocGraph %>%
       summarise(links = length(from)) %>%
-      cbind.data.frame(nodes = length(unique(coocGraph$from)))
+      cbind.data.frame(coocGraph %>% 
+                         pivot_longer(cols = c(from, to)) %>% 
+                         summarise(nodes = length(unique(value))))
     
     # create random network to use as threshold basis for degree measure
     # NOTE: size the random network based on the number of nodes and links of year i's coocGraph
@@ -357,10 +491,12 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
       
       quantiles <- as.data.frame(cbind(quantile = seq(0, 1, by = 0.05),
                                        consensus = as.numeric(quantile(node_attributes$consensus, 
-                                                                       seq(0, 1, by = 0.05))),
+                                                                       seq(0, 1, by = 0.05),
+                                                                       na.rm = T)),
                                        degree = mean(rand_graph_degree),
                                        conductivity = as.numeric(quantile(node_attributes$conductivity, 
-                                                                          seq(0, 1, by = 0.05))),
+                                                                          seq(0, 1, by = 0.05),
+                                                                          na.rm = T)),
                                        year = i,
                                        consensus_threshold = j))
       
@@ -405,7 +541,10 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
     assign(paste("graph_attr_", input_suffix, "_", i, sep = ""),
            coocGraph %>%
              summarise(links = length(from)) %>%
-             cbind.data.frame(nodes = length(unique(coocGraph$from)),
+             cbind.data.frame(coocGraph %>% 
+                                pivot_longer(cols = c(from, to)) %>% 
+                                summarise(all_nodes = length(unique(value))),
+                              central_nodes = length(unique(coocGraph$from)),
                               ndoc = length(docs$text[docs$year==i]),
                               nwords_avg = round(mean(ntoken(DTM))), #NOTE: these are number of words after stopwords removed
                               nwords_sd = sd(ntoken(DTM)),

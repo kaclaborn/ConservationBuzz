@@ -100,10 +100,14 @@ docs_a <- import_a %>%
          text = stringr::str_replace_all(text, 'ˆ', ' '), # general cleaning -- add a space so that it splits special character from other words
          text = stringr::str_replace_all(text, 'iii', ''), # general cleaning
          text = stringr::str_replace_all(text, 'ii', ''), # general cleaning
-         text = stringr::str_replace_all(text, 'î', ' ')) # general cleaning
+         text = stringr::str_replace_all(text, 'î', ' '), # general cleaning
+         text = stringr::str_replace_all(text, "\\'s ", ' '),
+         text = stringr::str_replace_all(text, "\\'S ", ' '),
+         text = stringr::str_replace_all(text, "\\’S ", " "),
+         text = stringr::str_replace_all(text, "\\’s ", " ")) # general cleaning -- remove apostrophe s (i.e., possessive)
 
 
-# write.csv(docs_a, "data/corpora/processed/docs_a.csv", row.names = FALSE, fileEncoding = "UTF-8")
+write.csv(docs_a, "data/corpora/processed/docs_a.csv", row.names = FALSE, fileEncoding = "UTF-8")
 
 
 
@@ -189,7 +193,15 @@ for(i in 1:length(files_folders_n)) {
       as.data.frame() %>%
       rename("text" = ".") %>%
       separate_rows(text, sep = "——————————") %>%
-      filter(text!="")
+      filter(text!="") %>%
+      mutate(text = stringr::str_replace_all(text, 'km2 ', ' '),
+             text = stringr::str_replace_all(text, 'km ', ' '),
+             text = stringr::str_replace_all(text, 'kg ', ' '),
+             text = stringr::str_replace_all(text, '-year ', ''),
+             text = stringr::str_replace_all(text, "\\'s ", ' '),
+             text = stringr::str_replace_all(text, "\\'S ", ' '),
+             text = stringr::str_replace_all(text, "\\’S ", " "),
+             text = stringr::str_replace_all(text, "\\’s ", " "))
     
     metadata <- data.frame(org_id = as.numeric(substr(list.files("data/corpora/processed/ngo")[i], 1, 3)),
                            org = NA,
@@ -376,7 +388,11 @@ import_m <- read_csv('data/corpora/preprocessed/media/media_docs_singlefile.csv'
 
 # ---- 4.4 Import docs_m_filtered for analysis ----
 
-docs_m_filtered <- read_csv("data/corpora/preprocessed/media/docs_m_filtered.csv", locale = readr::locale(encoding = "UTF-8"))
+docs_m <- read_csv("data/corpora/preprocessed/media/docs_m_filtered.csv", locale = readr::locale(encoding = "UTF-8")) %>%
+  mutate(text = stringr::str_replace_all(text, "\\'s ", ' '),
+         text = stringr::str_replace_all(text, "\\'S ", ' '),
+         text = stringr::str_replace_all(text, "\\’S ", " "),
+         text = stringr::str_replace_all(text, "\\’s ", " ")) # general cleaning -- remove apostrophe s (possessive)
 
-
+write.csv(docs_m, "data/corpora/processed/docs_m.csv", row.names = F, fileEncoding = "UTF-8")
 
