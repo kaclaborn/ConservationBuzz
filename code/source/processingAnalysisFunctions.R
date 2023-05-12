@@ -217,7 +217,7 @@ coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, co
 
   },
 
-  mc.cores = length(years))
+  mc.cores = n_cores)
 
 
   for(i in 1:length(DTM_byyear)) {
@@ -402,7 +402,8 @@ coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, co
 
 # ---- Function to source in pre-exported DTMs and coocGraphs and calculate basic network measures ----
 
-findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percentile_thresholds, coocTerm) {
+findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percentile_thresholds, 
+                               coocTerm, export = T) {
   
   # find most recent folders to import data from
   most_recent_DTM_folder <- last(list.files("data/outputs/DTMs"))
@@ -500,6 +501,11 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
                                        year = i,
                                        consensus_threshold = j))
       
+      quantiles_wide <- 
+        quantiles %>%   
+        filter(quantile%in%c(0.25, 0.5, 0.75)) %>%
+        pivot_wider(id_cols = c(year, consensus_threshold), 
+                    names_from = quantile, values_from = c(consensus, conductivity))
       
       # --- Define symbol type for each percentile threshold k (for low or high network measures)
 
@@ -509,12 +515,13 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
         high_consensus <- as.numeric(quantiles %>% filter(quantile==as.character(1-k)) %>% select(consensus))
         
         mean_rand_degree <- mean(rand_graph_degree)
-
+        
         low_conductivity <- as.numeric(quantiles %>% filter(quantile==as.character(k)) %>% select(conductivity))
         high_conductivity <- as.numeric(quantiles %>% filter(quantile==as.character(1-k)) %>% select(conductivity))
-
+        
         node_attributes_percentile <-
           node_attributes %>%
+          left_join(quantiles_wide, by = c("year", "consensus_threshold")) %>%
           mutate(percentile_threshold = k,
                  consensus_score = ifelse(consensus<=low_consensus, "low", ifelse(consensus>high_consensus, "high", "neither")),
                  degree_score = ifelse(degree<mean_rand_degree, "low", "high"),
@@ -526,7 +533,17 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
                                          consensus_score=="high" & degree_score=="high" & conductivity_score=="low" ~ "stereotype",
                                          consensus_score=="high" & degree_score=="low" & conductivity_score=="high" ~ "emblem",
                                          consensus_score=="low" & degree_score=="high" & conductivity_score=="high" ~ "placeholder",
-                                         consensus_score=="high" & degree_score=="high" & conductivity_score=="high" ~ "standard"))
+                                         consensus_score=="high" & degree_score=="high" & conductivity_score=="high" ~ "standard"),
+                 consensus_percentile = case_when(consensus<consensus_0.25 ~ "<25%",
+                                                  consensus>=consensus_0.25 & consensus<consensus_0.5 ~ "25-49%",
+                                                  consensus>=consensus_0.5 & consensus<consensus_0.75 ~ "50-74%",
+                                                  consensus>=consensus_0.75 ~ ">=75%"),
+                 consensus_percentile = factor(consensus_percentile, levels = c("<25%", "25-49%", "50-74%", ">=75%"), ordered = T),
+                 conductivity_percentile = case_when(conductivity<conductivity_0.25 ~ "<25%",
+                                                     conductivity>=conductivity_0.25 & conductivity<conductivity_0.5 ~ "25-49%",
+                                                     conductivity>=conductivity_0.5 & conductivity<conductivity_0.75 ~ "50-74%",
+                                                     conductivity>=conductivity_0.75 ~ ">=75%"),
+                 conductivity_percentile = factor(conductivity_percentile, levels = c("<25%", "25-49%", "50-74%", ">=75%"), ordered = T))
 
         node_attributes_allthresholds <- rbind(node_attributes_percentile, node_attributes_allthresholds)
         quantiles_allthresholds <- rbind(quantiles, quantiles_allthresholds)
@@ -575,7 +592,10 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
          get("quantiles_allthresholds", inherits = T),
          envir = .GlobalEnv)
 
+  
+  
   # Export to easily pull in for next time?
+  if(export==T){
   write.csv(get(paste("node_attributes_", input_suffix, sep = "")),
             paste("data/outputs/node_attributes_", input_suffix, ".csv", sep = ""),
             row.names = F)
@@ -587,7 +607,12 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
   write.csv(get(paste("graph_attr_", input_suffix, sep = "")),
             paste("data/outputs/graph_attr_", input_suffix, ".csv", sep = ""),
             row.names = F)
-
+  
+  write.csv(get(paste("quantiles_", input_suffix, "_allthresholds", sep = "")),
+            paste("data/outputs/quantiles_", input_suffix, ".csv", sep = ""),
+            row.names = F)
+  }
+  
   # Define clustering coefficients for each year's co-occurrence network
   clustering_coeffs <-
     data.frame(coeff = mapply(i = paste0("coocGraph", "_", input_suffix, "_", years),

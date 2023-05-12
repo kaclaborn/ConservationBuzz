@@ -183,7 +183,7 @@ for(i in 1:length(files_folders_n)) {
   
   for(j in files_recent) {
     
-    dat <- readLines(paste(files_folders_n[i], j, sep = "/")) %>%
+    dat <- readLines(paste(files_folders_n[i], j, sep = "/"), encoding = "UTF-8") %>%
       str_replace_all(fixed("\n"), "") %>%
       str_replace_all(fixed("\r"), "") %>%
       str_replace_all(fixed("\t"), "") %>%
@@ -230,6 +230,51 @@ write.csv(import_n, "data/corpora/processed/docs_n.csv", row.names = F, fileEnco
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
 
+
+# ---- 3.1 Import policy corpus files ----
+
+# Identify list of folders
+files_p <- paste("data/corpora/processed/policy", 
+                         list.files("data/corpora/processed/policy"), sep = "/")
+
+# Identify files within each folder, import the data 
+
+import_p <- data.frame(text = character(),
+                       year = numeric(0),
+                       org = character())
+
+
+for(i in 1:length(files_p)) {
+  
+  dat <- readLines(files_p[i], encoding = "UTF-8") %>%
+      str_replace_all(fixed("\n"), "") %>%
+      str_replace_all(fixed("\r"), "") %>%
+      str_replace_all(fixed("\t"), "") %>%
+      str_replace_all(fixed("\""), "") %>%
+      paste(sep = " ", collapse = " ") %>%
+      str_squish() %>%
+      as.data.frame() %>%
+      rename("text" = ".") %>%
+      separate_rows(text, sep = "——————————") %>%
+      filter(text!="") %>%
+      mutate(year = as.numeric(substr(list.files("data/corpora/processed/policy")[i], 1, 4)),
+             org = substr(list.files("data/corpora/processed/policy")[i], 6, 10),
+             text = stringr::str_replace_all(text, 'km2 ', ' '),
+             text = stringr::str_replace_all(text, 'km ', ' '),
+             text = stringr::str_replace_all(text, 'kg ', ' '),
+             text = stringr::str_replace_all(text, '-year ', ''),
+             text = stringr::str_replace_all(text, "\\'s ", ' '),
+             text = stringr::str_replace_all(text, "\\'S ", ' '),
+             text = stringr::str_replace_all(text, "\\’S ", " "),
+             text = stringr::str_replace_all(text, "\\’s ", " "))
+  
+    # append the new text data to the master data frames
+    import_p <- rbind.data.frame(import_p, dat)
+    
+  }
+
+
+write.csv(import_p, "data/corpora/processed/docs_p.csv", row.names = F, fileEncoding = "UTF-8")
 
 
 # 
