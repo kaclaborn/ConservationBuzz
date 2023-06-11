@@ -49,7 +49,8 @@ add_to_lemma <- bind_rows(# British English spellings
                           data.frame(token = "sustainability", lemma = "sustainable"),
                           data.frame(token = "accessibility", lemma = "accessible"),
                           data.frame(token = "resilient", lemma = "resilience"),
-                          data.frame(token = "inclusion", lemma = "inclusive"))
+                          data.frame(token = "inclusion", lemma = "inclusive"),
+                          data.frame(token = "collaboration", lemma = "collaborate"))
 
 thesaurus <- rbind(hash_lemmas, add_to_lemma) %>%
   mutate(lemma = case_when(lemma=="analyse" ~ "analyze", 
@@ -67,7 +68,8 @@ thesaurus <- rbind(hash_lemmas, add_to_lemma) %>%
                            lemma=="mobilise" ~ "mobilize",
                            lemma=="standardise" ~ "standardize",
                            TRUE ~ lemma)
-  )
+  ) %>%
+  filter(token!="number")
 
 
 # ---- Stopwords ----

@@ -112,7 +112,7 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, i
       size.values <- NULL
     }
     
-    
+    # make preliminary plot
     plot <- 
       ggplot(dat) +
       geom_segment(aes(x = 0, xend = rel_freq, y = node, yend = node, color = as.character(most_recent_year)),
@@ -135,6 +135,7 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, i
            subtitle = plot.subtitle) +
       lollipop.plot.theme + lollipop.legend.guide
     
+    # adjust scaling based on type of plot
     if(sort_by=="freq" | sort_by=="yearfreq" | sort_by=="freq_byyear") {
       plot <- plot + 
         scale_size_manual(name = str_wrap(paste("number years as ", symbol_label, sep = ""),
@@ -152,25 +153,20 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, i
         scale_size_binned(name = "network conductivity", 
                           n.breaks = 6)
     }
+  
     
     # export plot
-    if(sort_by=="freq_byyear") {
-      png(paste(output_dir, "/", symbol, "_", 
-                input_suffix, "_", sort_by, "_", input_year, "_c", consensus, "_p", percentile, ".png", sep = ""),
-          units = "in", height = 10, width = 6, res = 400)
-      grid.newpage()
-      grid.draw(plot)
-      dev.off()
-      
-    } else {
-    png(paste(output_dir, "/", symbol, "_", 
-              input_suffix, "_", sort_by, "_c", consensus, "_p", percentile, ".png", sep = ""),
+    output_filename <- ifelse(sort_by=="freq_byyear", 
+                              paste(output_dir, "/", symbol, "_", 
+                                    input_suffix, "_", sort_by, "_", input_year, "_c", consensus, "_p", percentile, ".png", sep = ""),
+                              paste(output_dir, "/", symbol, "_", 
+                                    input_suffix, "_", sort_by, "_c", consensus, "_p", percentile, ".png", sep = ""))
+    
+    png(output_filename,
         units = "in", height = 10, width = 6, res = 400)
     grid.newpage()
     grid.draw(plot)
     dev.off()
-    }
-
 }
 
 # ---- make top symbol plots sorting by number of years and freq ----

@@ -63,3 +63,4 @@ lollipop.legend.guide <- guides(size = guide_legend(order = 1,
 
 # Fill colors
 fillcols.4categories <- c("#332288", "#6699CC", "#44AA99", "#CC6677")
+fillcols.6categories <- c("#332288", "#6699CC", "#44AA99", "#DDCC77", "#CC6677", "#882255")
