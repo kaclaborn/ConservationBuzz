@@ -75,7 +75,7 @@ thesaurus <- rbind(hash_lemmas, add_to_lemma) %>%
 # ---- Stopwords ----
 
 add_to_stopwords <- c(# highly frequent proper nouns
-                      "tnc", "iucn", "wwf", "dswf", "ecohealth", "iied", "ci",
+                      "tnc", "iucn", "wwf", "dswf", "ecohealth", "iied", "ci", "wcs", 
                       
                       
                       # abbreviations & numbers (not removed through tokenization process)
@@ -102,4 +102,4 @@ stopwords_extended <- c(scan("code/source/stopwords_extended_pos.txt", character
 # collocates stopword list
 collocates_stopwords <- c("birdlife_international", "birdlife_partner", "birdlife", "conservation_international",
                           "nature_conservancy", "david_shepherd_wildlife_foundation", "david_shepherd", 
-                          "world_wildlife_fund", "wetlands_international")
+                          "world_wildlife_fund", "wetlands_international", "unite_state")
