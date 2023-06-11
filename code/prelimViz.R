@@ -178,7 +178,7 @@ makeTopSymbolPlots(sort_by = "yearfreq",
                    corpus = "Academic", 
                    symbol = "placeholder",
                    consensus = 0.25,
-                   percentile = 0.5)
+                   percentile = 0.4)
 
 makeTopSymbolPlots(sort_by = "yearfreq",
                    input_data = compare_symbol_types_a, 
@@ -186,7 +186,7 @@ makeTopSymbolPlots(sort_by = "yearfreq",
                    corpus = "Academic", 
                    symbol = "buzzword",
                    consensus = 0.25,
-                   percentile = 0.5)
+                   percentile = 0.4)
 
 makeTopSymbolPlots(sort_by = "yearfreq",
                    input_data = compare_symbol_types_a, 
@@ -203,7 +203,7 @@ makeTopSymbolPlots(sort_by = "yearfreq",
                    corpus = "NGO", 
                    symbol = "placeholder",
                    consensus = 0.5,
-                   percentile = 0.5)
+                   percentile = 0.4)
 
 makeTopSymbolPlots(sort_by = "yearfreq",
                    input_data = compare_symbol_types_n, 
@@ -211,7 +211,7 @@ makeTopSymbolPlots(sort_by = "yearfreq",
                    corpus = "NGO", 
                    symbol = "buzzword",
                    consensus = 0.5,
-                   percentile = 0.5)
+                   percentile = 0.4)
 
 makeTopSymbolPlots(sort_by = "yearfreq",
                    input_data = compare_symbol_types_n, 
@@ -228,16 +228,16 @@ makeTopSymbolPlots(sort_by = "yearfreq",
                    input_suffix = "m_nyt_filt", 
                    corpus = "Media - NYT", 
                    symbol = "placeholder",
-                   consensus = 0.75,
-                   percentile = 0.5)
+                   consensus = 0.5,
+                   percentile = 0.4)
 
 makeTopSymbolPlots(sort_by = "yearfreq",
                    input_data = compare_symbol_types_m_nyt, 
                    input_suffix = "m_nyt_filt", 
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.75,
-                   percentile = 0.5)
+                   consensus = 0.5,
+                   percentile = 0.4)
 
 
 # ---- make top symbol plots just sorting by frequency only ----
@@ -300,7 +300,7 @@ makeTopSymbolPlots(sort_by = "conductivity",
                    input_data = compare_symbol_types_a, 
                    input_suffix = "a", 
                    corpus = "Academic", 
-                   symbol = "placeholder",
+                   symbol = "buzzplace",
                    consensus = 0.25,
                    percentile = 0.5)
 
@@ -309,7 +309,7 @@ makeTopSymbolPlots(sort_by = "conductivity",
                    input_data = compare_symbol_types_n, 
                    input_suffix = "n", 
                    corpus = "NGO", 
-                   symbol = "placeholder",
+                   symbol = "buzzplace",
                    consensus = 0.5,
                    percentile = 0.5)
 
@@ -318,7 +318,7 @@ makeTopSymbolPlots(sort_by = "conductivity",
                    input_data = compare_symbol_types_m_nyt, 
                    input_suffix = "m_nyt_filt", 
                    corpus = "Media - NYT", 
-                   symbol = "placeholder",
+                   symbol = "buzzplace",
                    consensus = 0.75,
                    percentile = 0.5)
 
@@ -427,7 +427,7 @@ makeTopSymbolPlots(sort_by = "freq_byyear",
                    input_year = 2021,
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.75,
+                   consensus = 0.5,
                    percentile = 0.5)
 
 makeTopSymbolPlots(sort_by = "freq_byyear",
@@ -436,7 +436,7 @@ makeTopSymbolPlots(sort_by = "freq_byyear",
                    input_year = 2020,
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.75,
+                   consensus = 0.5,
                    percentile = 0.5)
 
 makeTopSymbolPlots(sort_by = "freq_byyear",
@@ -445,7 +445,7 @@ makeTopSymbolPlots(sort_by = "freq_byyear",
                    input_year = 2019,
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.75,
+                   consensus = 0.5,
                    percentile = 0.5)
 
 makeTopSymbolPlots(sort_by = "freq_byyear",
@@ -454,7 +454,7 @@ makeTopSymbolPlots(sort_by = "freq_byyear",
                    input_year = 2018,
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.75,
+                   consensus = 0.5,
                    percentile = 0.5)
 
 makeTopSymbolPlots(sort_by = "freq_byyear",
@@ -463,5 +463,5 @@ makeTopSymbolPlots(sort_by = "freq_byyear",
                    input_year = 2017,
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.75,
+                   consensus = 0.5,
                    percentile = 0.5)

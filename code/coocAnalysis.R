@@ -95,8 +95,8 @@ coocGraphsPerYear(input_data = docs_p, input_suffix = "p", years = c(2019, 2022)
 
  # ---- 2.4 Define node attributes per co-occurrence network, and compare across years ----
 
-findNodeAttributes(input_suffix = "n", 
-                   years = 2017:2021, 
+findNodeAttributes(input_suffix = "p", 
+                   years = c(2019, 2022), 
                    consensus_thresholds = c(0.25, 0.33, 0.5, 0.75), 
                    percentile_thresholds = c(0.35, 0.4, 0.45, 0.5),
                    coocTerm = "conservation", 

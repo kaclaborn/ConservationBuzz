@@ -8,7 +8,6 @@ pacman::p_load(lexicon, stopwords)
 
 # ---- Lemma data ----
 
-
 # Build upon hash_lemmas table from lexicon package
 
 add_to_lemma <- bind_rows(# British English spellings
@@ -69,7 +68,7 @@ thesaurus <- rbind(hash_lemmas, add_to_lemma) %>%
                            lemma=="standardise" ~ "standardize",
                            TRUE ~ lemma)
   ) %>%
-  filter(token!="number")
+  filter(token!="number" & token!="data")
 
 
 # ---- Stopwords ----
