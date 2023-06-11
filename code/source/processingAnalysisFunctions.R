@@ -403,11 +403,16 @@ coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, co
 # ---- Function to source in pre-exported DTMs and coocGraphs and calculate basic network measures ----
 
 findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percentile_thresholds, 
-                               coocTerm, export = T) {
+                               coocTerm, export = T, input_file = NULL) {
   
+  if(is.null(input_file)){
   # find most recent folders to import data from
   most_recent_DTM_folder <- last(list.files("data/outputs/DTMs"))
   most_recent_coocGraph_folder <- last(list.files("data/outputs/coocGraphs"))
+  } else {
+    most_recent_DTM_folder <- paste("data/outputs/DTMs/", input_file, sep = "")
+    most_recent_coocGraph_folder <- paste("data/outputs/coocGraphs/", input_file, sep = "")
+  }
   
   # import DTM and coocGraph data
   for(i in 1:length(years)) {

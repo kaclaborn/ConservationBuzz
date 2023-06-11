@@ -11,37 +11,45 @@ pacman::p_load(lexicon, stopwords)
 
 # Build upon hash_lemmas table from lexicon package
 
-add_to_lemma <- rbind(# British English spellings
-                      data.frame(token = "analyse", lemma = "analyze"),
-                      data.frame(token = "behaviour", lemma = "behavior"),
-                      data.frame(token = "programme", lemma = "program"),
-                      data.frame(token = "recognise", lemma = "recognize"),
-                      data.frame(token = "emphasise", lemma = "emphasize"),
-                      data.frame(token = "prioritise", lemma = "prioritize"),
-                      data.frame(token = "harbour", lemma = "harbor"),
-                      data.frame(token = "colonisation", lemma = "colonization"),
-                      data.frame(token = "prioritisation", lemma = "prioritization"),
-                      data.frame(token = "generalise", lemma = "generalize"),
-                      data.frame(token = "maximise", lemma = "maximize"),
-                      data.frame(token = "organisation", lemma = "organization"),
-                      data.frame(token = "mobilise", lemma = "mobilize"),
-                      data.frame(token = "urbanisation", lemma = "urbanization"),
-                      data.frame(token = "favourable", lemma = "favorable"),
-                      data.frame(token = "marginalise", lemma = "marginalize"),
-                      data.frame(token = "standardise", lemma = "standardize"),
-                      
-                      # Hyphenated or abbreviated words
-                      data.frame(token = "greenspace", lemma = "green_space"),
-                      data.frame(token = "sdgs", lemma = "sdg"),
-                      data.frame(token = "socioeconomic", lemma = "socio-economic"),
-                      data.frame(token = "usa", lemma = "unite state"),
-                      data.frame(token = "decision-making", lemma = "decision_making"),
-                      data.frame(token = "manage-ment", lemma = "management"),
-                      data.frame(token = "govern-ment", lemma = "government"),
-                      data.frame(token = "partner-ship", lemma = "partnership"),
-                      data.frame(token = "solu-tions", lemma = "solution"),
-                      data.frame(token = "nbs", lemma = "nature-based_solution"))
-
+add_to_lemma <- bind_rows(# British English spellings
+                          data.frame(token = "analyse", lemma = "analyze"),
+                          data.frame(token = "behaviour", lemma = "behavior"),
+                          data.frame(token = "programme", lemma = "program"),
+                          data.frame(token = "recognise", lemma = "recognize"),
+                          data.frame(token = "emphasise", lemma = "emphasize"),
+                          data.frame(token = "prioritise", lemma = "prioritize"),
+                          data.frame(token = "harbour", lemma = "harbor"),
+                          data.frame(token = "colonisation", lemma = "colonization"),
+                          data.frame(token = "prioritisation", lemma = "prioritization"),
+                          data.frame(token = "generalise", lemma = "generalize"),
+                          data.frame(token = "maximise", lemma = "maximize"),
+                          data.frame(token = "organisation", lemma = "organization"),
+                          data.frame(token = "mobilise", lemma = "mobilize"),
+                          data.frame(token = "urbanisation", lemma = "urbanization"),
+                          data.frame(token = "favourable", lemma = "favorable"),
+                          data.frame(token = "marginalise", lemma = "marginalize"),
+                          data.frame(token = "standardise", lemma = "standardize"),
+  
+                          # Hyphenated or abbreviated words
+                          data.frame(token = "greenspace", lemma = "green_space"),
+                          data.frame(token = "sdgs", lemma = "sdg"),
+                          data.frame(token = "socioeconomic", lemma = "socio-economic"),
+                          data.frame(token = "usa", lemma = "unite state"),
+                          data.frame(token = "decision-making", lemma = "decision_making"),
+                          data.frame(token = "manage-ment", lemma = "management"),
+                          data.frame(token = "govern-ment", lemma = "government"),
+                          data.frame(token = "partner-ship", lemma = "partnership"),
+                          data.frame(token = "solu-tions", lemma = "solution"),
+                          data.frame(token = "nbs", lemma = "nature-based_solution"),
+                          
+                          # Words with multiple nouns associated with same concept
+                          data.frame(token = "equitability", lemma = "equitable"),
+                          data.frame(token = "vulnerability", lemma = "vulnerable"),
+                          data.frame(token = "vulnerabilities", lemma = "vulnerable"),
+                          data.frame(token = "sustainability", lemma = "sustainable"),
+                          data.frame(token = "accessibility", lemma = "accessible"),
+                          data.frame(token = "resilient", lemma = "resilience"),
+                          data.frame(token = "inclusion", lemma = "inclusive"))
 
 thesaurus <- rbind(hash_lemmas, add_to_lemma) %>%
   mutate(lemma = case_when(lemma=="analyse" ~ "analyze", 

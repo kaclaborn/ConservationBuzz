@@ -93,12 +93,12 @@ coocGraphsPerYear(input_data = docs_p, input_suffix = "p", years = c(2019, 2022)
 
  # ---- 2.4 Define node attributes per co-occurrence network, and compare across years ----
 
-findNodeAttributes(input_suffix = "n", 
-                   years = 2017:2021, 
+findNodeAttributes(input_suffix = "a", 
+                   years = 2000:2021, 
                    consensus_thresholds = c(0.25, 0.33, 0.5, 0.75), 
                    percentile_thresholds = c(0.35, 0.4, 0.45, 0.5),
                    coocTerm = "conservation", 
-                   export = F)
+                   export = T)
 
 
 # 
@@ -115,14 +115,17 @@ findNodeAttributes(input_suffix = "n",
 node_attributes_a <- read_csv("data/outputs/node_attributes_a.csv")
 node_attributes_n <- read_csv("data/outputs/node_attributes_n.csv")
 node_attributes_m_nyt_filt <- read_csv("data/outputs/node_attributes_m_nyt_filt.csv")
+node_attributes_p <- read_csv("data/outputs/node_attributes_p.csv")
 
 node_freq_a <- read_csv("data/outputs/node_freq_a.csv")
 node_freq_n <- read_csv("data/outputs/node_freq_n.csv")
 node_freq_m_nyt_filt <- read_csv("data/outputs/node_freq_m_nyt_filt.csv")
+node_freq_p <- read_csv("data/outputs/node_freq_p.csv")
 
 graph_attr_a <- read_csv("data/outputs/graph_attr_a.csv")
 graph_attr_n <- read_csv("data/outputs/graph_attr_n.csv")
 graph_attr_m_nyt_filt <- read_csv("data/outputs/graph_attr_m_nyt_filt.csv")
+graph_attr_p <- read_csv("data/outputs/graph_attr_p.csv")
 
 
 
@@ -149,7 +152,8 @@ compare_symbol_types_a <-
   ungroup() %>%
   pivot_wider(id_cols = c(node, consensus_threshold, percentile_threshold, buzzword_years, buzzword_years_2017_2021,
                           placeholder_years, placeholder_years_2017_2021, standard_years, buzzplace_years_2017_2021), 
-              names_from = year, values_from = c(symbol_type, freq, rel_freq))
+              names_from = year, values_from = c(symbol_type, freq, rel_freq, conductivity, consensus, degree, 
+                                                 consensus_percentile, conductivity_percentile))
 
 compare_symbol_types_n <-
   node_attributes_n %>% 
@@ -170,7 +174,8 @@ compare_symbol_types_n <-
   ungroup() %>%
   pivot_wider(id_cols = c(node, consensus_threshold, percentile_threshold, buzzword_years_2017_2021, 
                           placeholder_years_2017_2021, standard_years, buzzplace_years_2017_2021), 
-              names_from = year, values_from = c(symbol_type, freq, rel_freq))
+              names_from = year, values_from = c(symbol_type, freq, rel_freq, conductivity, consensus, degree, 
+                                                 consensus_percentile, conductivity_percentile))
 
 compare_symbol_types_m_nyt <-
   node_attributes_m_nyt_filt %>% 
@@ -191,7 +196,8 @@ compare_symbol_types_m_nyt <-
   ungroup() %>%
   pivot_wider(id_cols = c(node, consensus_threshold, percentile_threshold, buzzword_years_2017_2021, 
                           placeholder_years_2017_2021, standard_years, buzzplace_years_2017_2021), 
-              names_from = year, values_from = c(symbol_type, freq, rel_freq))
+              names_from = year, values_from = c(symbol_type, freq, rel_freq, conductivity, consensus, degree, 
+                                                 consensus_percentile, conductivity_percentile))
 
 compare_symbol_types_p <-
   node_attributes_p %>% 
@@ -326,5 +332,6 @@ place_and_buzz_n_c0.5_t0.5 <-
 
 
 # ---- Explore ----
-
-
+DTM_a <- readRDS("data/outputs/DTMs/20230512/DTM_a_2021.rds")
+wordcounts_a <- t(DTM_a) %*% DTM_a
+wordcounts_a["sustainability","sustainability"]
