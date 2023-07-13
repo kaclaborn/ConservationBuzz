@@ -139,9 +139,9 @@ PlotTrajectories_compareCorpora <- function(focal_word, data, upper_limit = 0.5)
     geom_point(data = data %>% filter(node==focal_word),
                aes(x = year, y = rel_freq, color = corpus, shape = shapetype, size = shapesize)) +
     geom_text(data = data %>% 
-                filter(node==focal_word & corpus=="policy") %>% 
-                mutate(label = ifelse(year==2019, "IPBES", "UNCBD")),
-              aes(x = year, y = rel_freq + 0.03, label = label),
+                 filter(node==focal_word & corpus=="policy") %>% 
+                 mutate(label = ifelse(year==2019, "IPBES", "UNCBD")),
+               aes(x = year, y = rel_freq + 0.03, label = label),
               size = 2.5) +
     scale_shape_manual(name = "",
                        values = c("buzzword/placeholder" = 16, "standard" = 0, "emblem/stereotype" = 2,
@@ -167,26 +167,30 @@ PlotTrajectories_compareCorpora <- function(focal_word, data, upper_limit = 0.5)
   return(plot)
 }
 
-PlotTrajectories_compareWords <- function(focal_corpus, words, data, years = c(2017:2021),
-                                          upper_limit = 0.5, points_on = T) {
+PlotTrajectories_compareWords <- function(focal_corpus, words, data, upper_limit = 0.5) {
   
   title <- paste(str_to_title(focal_corpus), "Corpus", sep = " ")
   break_points <- ifelse(upper_limit > 0.5, 0.1, 0.05)
-  break_points_x <- ifelse(length(years)>14, 3, 1)
   
-  data <- data %>% filter(corpus==focal_corpus & node%in%words & year%in%years)
+  data <- data %>% filter(corpus==focal_corpus & node%in%words)
   
   plot <- 
     ggplot(data = data) +
     geom_line(aes(x = year, y = rel_freq, color = node)) +
+    geom_point(aes(x = year, y = rel_freq, color = node, shape = shapetype, size = shapesize)) +
+    scale_shape_manual(name = "",
+                       values = c("buzzword/placeholder" = 16, "standard" = 0, "emblem/stereotype" = 2,
+                                  "allusion/factoid" = 6, "ordinary" = 5, "not classified" = 4),
+                       drop = F) +
+    scale_size_manual(values = c("big" = 3, "small" = 2),
+                      guide = "none") +
     scale_color_manual(name = "",
-                       values = fillcols.6categories,
+                       labels = str_to_title(words),
+                       values = fillcols.4categories,
                        drop = F) + 
     scale_x_continuous(expand = c(0, 0),
-                       limits = c(min(years)-0.5, max(years)+0.5),
-                       breaks = seq(min(years), 
-                                    max(years), 
-                                    by = break_points_x)) +
+                       limits = c(min(unique(data$year))-0.5, max(unique(data$year)+0.5)),
+                       breaks = seq(min(unique(data$year)), max(unique(data$year)), by = 1)) +
     scale_y_continuous(expand = c(0, 0),
                        labels = scales::percent_format(accuracy = 1),
                        limits = c(0, upper_limit), 
@@ -196,29 +200,6 @@ PlotTrajectories_compareWords <- function(focal_corpus, words, data, years = c(2
          subtitle = "Trajectories of use") +
     time.plot.theme
   
-  if(points_on==T){
-    plot <- 
-      plot + 
-      geom_point(aes(x = year, y = rel_freq, color = node, shape = shapetype, size = shapesize)) +
-      scale_shape_manual(name = "",
-                         values = c("buzzword/placeholder" = 16, "standard" = 0, "emblem/stereotype" = 2,
-                                    "allusion/factoid" = 6, "ordinary" = 5, "not classified" = 4),
-                         drop = F) +
-      scale_size_manual(values = c("big" = 3, "small" = 2),
-                        guide = "none")
-  } 
-  if(points_on==F) {
-    plot <- 
-      plot + 
-      geom_line(aes(x = year, y = rel_freq, color = node),
-                size = 1)
-  }
-  if(length(years)>10) {
-    plot <-
-      plot +
-      theme(axis.text.x = element_text(angle = 320,
-                                       hjust = 0))
-  }
   return(plot)
 }
 
@@ -276,170 +257,18 @@ timeplot_governance <- PlotTrajectories_compareCorpora("governance", focalword_a
 timeplot_nature_contribution <- PlotTrajectories_compareCorpora("nature contribution", focalword_attributes, upper_limit = 0.6)
 timeplot_local_community <- PlotTrajectories_compareCorpora("local community", focalword_attributes, upper_limit = 0.6)
 timeplot_nature <- PlotTrajectories_compareCorpora("nature", focalword_attributes, upper_limit = 0.8)
-timeplot_crisis <- PlotTrajectories_compareCorpora("crisis", focalword_attributes, upper_limit = 0.6)
-timeplot_extinction <- PlotTrajectories_compareCorpora("extinction", focalword_attributes, upper_limit = 0.6)
-timeplot_illegal <- PlotTrajectories_compareCorpora("illegal", focalword_attributes, upper_limit = 0.6)
-timeplot_deforestation <- PlotTrajectories_compareCorpora("deforestation", focalword_attributes, upper_limit = 0.6)
+timeplot_crisis <- PlotTrajectories_compareCorpora("crisis", focalword_attributes, upper_limit = 0.8)
+timeplot_extinction <- PlotTrajectories_compareCorpora("extinction", focalword_attributes, upper_limit = 0.8)
 timeplot_framework <- PlotTrajectories_compareCorpora("framework", focalword_attributes, upper_limit = 0.8)
 timeplot_conservation <- PlotTrajectories_compareCorpora("conservation", focalword_attributes, upper_limit = 0.8)
-timeplot_resilience <- PlotTrajectories_compareCorpora("resilience", focalword_attributes, upper_limit = 0.6)
-timeplot_resilient <- PlotTrajectories_compareCorpora("resilient", focalword_attributes, upper_limit = 0.6)
-timeplot_safeguard <- PlotTrajectories_compareCorpora("safeguard", focalword_attributes, upper_limit = 0.6)
-timeplot_risk <- PlotTrajectories_compareCorpora("risk", focalword_attributes, upper_limit = 0.6)
-timeplot_adaptation <- PlotTrajectories_compareCorpora("adaptation", focalword_attributes, upper_limit = 0.6)
-timeplot_vulnerable <- PlotTrajectories_compareCorpora("vulnerable", focalword_attributes, upper_limit = 0.6)
+timeplot_resilience <- PlotTrajectories_compareCorpora("resilience", focalword_attributes, upper_limit = 0.8)
+timeplot_resilient <- PlotTrajectories_compareCorpora("resilient", focalword_attributes, upper_limit = 0.8)
 
 
 # ---- 4.4 Compare words across academic corpus (2000-2021) ----
 
-compareplot_a1 <- PlotTrajectories_compareWords(focal_corpus = "academic", 
+timeplot_a1 <- PlotTrajectories_compareWords(focal_corpus = "academic", 
                                              data = focalword_attributes,
-                                             words = c("biodiversity", "ecosystem service", 
-                                                       "climate change"),
-                                             years = c(2000:2021),
-                                             upper_limit = 0.3,
-                                             points_on = F)
+                                             words = c("biodiversity", "ecosystem service", "climate change"),
+                                             upper_limit = 0.6)
 
-compareplot_a2 <- PlotTrajectories_compareWords(focal_corpus = "academic", 
-                                                data = focalword_attributes,
-                                                words = c("global", "local", "region", "landscape"),
-                                                years = c(2000:2021),
-                                                upper_limit = 0.3,
-                                                points_on = F)
-
-
-# ---- 4.4 Compare words across NGO corpus (2017-2021) ----
-
-# working with others, dei, etc.
-compareplot_n1 <- PlotTrajectories_compareWords(focal_corpus = "ngo", 
-                                                data = focalword_attributes,
-                                                words = c("partnership", "community", 
-                                                          "inclusive", "equity"),
-                                                upper_limit = 0.6,
-                                                points_on = T)
-# geographic, temporal scale
-compareplot_n2 <- PlotTrajectories_compareWords(focal_corpus = "ngo", 
-                                                data = focalword_attributes,
-                                                words = c("global", "local", "future", 
-                                                          "decade", "time"),
-                                                upper_limit = 0.6,
-                                                points_on = T)
-# ways of working, action-oriented
-compareplot_n3 <- PlotTrajectories_compareWords(focal_corpus = "ngo", 
-                                                data = focalword_attributes,
-                                                words = c("landscape", "nature-based solution",
-                                                          "action", "management", "safeguard"),
-                                                upper_limit = 0.6,
-                                                points_on = T)
-# characterizing the problem
-compareplot_n4 <- PlotTrajectories_compareWords(focal_corpus = "ngo", 
-                                                data = focalword_attributes,
-                                                words = c("biodiversity", "nature", 
-                                                          "system", "climate change"),
-                                                upper_limit = 0.6,
-                                                points_on = T)
-# desired future
-compareplot_n5 <- PlotTrajectories_compareWords(focal_corpus = "ngo", 
-                                                data = focalword_attributes,
-                                                words = c("transformation", "livelihood", "sustainable"),
-                                                upper_limit = 0.6,
-                                                points_on = T)
-
-
-# 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#
-# ---- SECTION 5: WORD LINKAGES THROUGH TIME ----
-#
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#
-
-# ---- 5.1 Wrangle semantic maps for looking at links ----
-
-focalword_coocGraph <- function(focal_word, years = 2017:2021, 
-                                input_corpora = c("a", "n", "m_nyt_filt"),
-                                input_file = NULL) {
-  
-  if(is.null(input_file)){
-    # find most recent folders to import data from
-    most_recent_coocGraph_folder <- last(list.files("data/outputs/coocGraphs"))
-  } else {
-    most_recent_coocGraph_folder <- paste("data/outputs/coocGraphs/", input_file, sep = "")
-  }
-  
-  coocGraph <- NULL
-  
-  # import coocGraph data, mutate and join with other corpora/years
-  for(i in years) {
-    
-    for(j in input_corpora) {
-      
-      coocGraph <- 
-        bind_rows(coocGraph,
-                  read_csv(paste("data/outputs/coocGraphs/", most_recent_coocGraph_folder, "/coocGraph_", j, "_", i, ".csv", sep = ""),
-                           locale = readr::locale(encoding = "UTF-8")) %>%
-                    filter(from==focal_word) %>%
-                    mutate(corpus = case_when(j=="a" ~ "academic",
-                                              j=="n" ~ "ngo",
-                                              j=="m_nyt_filt" ~ "media",
-                                              j=="m" ~ "media",
-                                              j=="p" ~ "policy"),
-                           year = i) %>%
-                    left_join(get(paste("node_freq_", j, sep = "")), 
-                              by = c("to" = "node", "year")) %>%
-                    rename("node_freq" = "freq") %>%
-                    left_join(get(paste("node_freq_", j, sep = "")), 
-                              by = c("from" = "node", "year")) %>%
-                    rename("focal_freq" = "freq") %>%
-                    mutate(prop_node_freq = coocFreq/node_freq,
-                           prop_focal_freq = coocFreq/focal_freq)
-      )
-    }
-  }
-  
-  coocGraph <- 
-    coocGraph %>%
-    rename("focal_word" = "from",
-           "node" = "to")
-  
-  return(coocGraph)
-}
-
-# ---- biodiversity ----
-
-coocGraph_biodiversity <- 
-  focalword_coocGraph(focal_word = "biodiversity") 
-
-linkages_biodiversity <-
-  coocGraph_biodiversity %>%
-  distinct() %>%
-  group_by(focal_word, corpus, year) %>%
-  arrange(desc(prop_focal_freq), .by_group = T) %>%
-  summarise(n_cooc = length(node),
-            coocs = list(node))
-
-# ---- nature ----
-
-coocGraph_nature <- 
-  focalword_coocGraph(focal_word = "nature") 
-
-linkages_nature <-
-  coocGraph_nature %>%
-  distinct() %>%
-  group_by(focal_word, corpus, year) %>%
-  arrange(desc(prop_focal_freq), .by_group = T) %>%
-  summarise(n_cooc = length(node),
-            coocs = list(node))
-
-# ---- climate change ----
-
-coocGraph_climate_change <- 
-  focalword_coocGraph(focal_word = "climate change") 
-
-linkages_climate_change <-
-  coocGraph_climate_change %>%
-  distinct() %>%
-  group_by(focal_word, corpus, year) %>%
-  arrange(desc(prop_focal_freq), .by_group = T) %>%
-  summarise(n_cooc = length(node),
-            coocs = list(node))

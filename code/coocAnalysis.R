@@ -87,7 +87,7 @@ docs_m_nyt_filt <-
 # ---- 2.3 Subset DTMs per year, create co-occurrence networks, and export to flat file ----
 ## COMPUTATIONALLY INTENSIVE -- ONLY RUN ONCE AND THEN SOURCE IN FLAT FILES TO DO ANALYSIS IN SECTION 3 AND BEYOND
 
-coocGraphsPerYear(input_data = docs_p, input_suffix = "p", years = c(2019, 2022), 
+coocGraphsPerYear(input_data = docs_n, input_suffix = "n", years = 2017:2021, 
                   sd_multiplier = 3, stopword_list = stopwords_extended,
                   coocTerm = "conservation",
                   n_cores = 1)
@@ -106,7 +106,7 @@ findNodeAttributes(input_suffix = "p",
 # 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
-# ---- SECTION 3: TRACK WORDS THROUGH TIME ----
+# ---- SECTION 3: COMPARE WORDS/NETWORKS THROUGH TIME ----
 #
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
@@ -334,5 +334,6 @@ place_and_buzz_n_c0.5_t0.5 <-
 
 
 # ---- Explore ----
-
-
+DTM_a <- readRDS("data/outputs/DTMs/20230512/DTM_a_2021.rds")
+wordcounts_a <- t(DTM_a) %*% DTM_a
+wordcounts_a["sustainability","sustainability"]

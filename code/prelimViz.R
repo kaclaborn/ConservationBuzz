@@ -10,14 +10,15 @@ source("code/source/plotThemes.R")
 # Visualize the top terms per symbol type
 
 makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, input_year,
-                               corpus, symbol, consensus, percentile) {
+                               corpus, symbol, consensus, percentile, num_years_cutoff = 3, 
+                               title_on = TRUE) {
   
   
   dir.create("data/outputs/figures/")
   dir.create(paste("data/outputs/figures/", format(Sys.Date(),"%Y%m%d"), sep = ""))
   output_dir <- paste("data/outputs/figures/", format(Sys.Date(),"%Y%m%d"), sep = "")
   
-  symbol_label <- ifelse(symbol=="buzzplace", "buzzword or placeholder", symbol)
+  symbol_label <- ifelse(symbol=="buzzplace", "buzzword", symbol)
   percentile_label <- paste(percentile*100, "th", sep = "")
   
   sym_type1 <- ifelse(symbol=="buzzplace", "buzzword", symbol)
@@ -43,9 +44,11 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, i
                                       most_recent_year==2018 ~ conductivity_2018,
                                       most_recent_year==2017 ~ conductivity_2017))
     
+    if(title_on){
     plot.title <- paste(corpus, " ", 
                         symbol_label, "s, ",
                         "2017-2021", sep = "")
+    } else {plot.title <- NULL}
     
     if(sort_by=="yearfreq") {
       dat <- dat %>%
@@ -56,13 +59,14 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, i
                            levels = c("1", "2", "3", "4", "5"),
                            ordered = T))
     
-      dat <- dat %>% filter(get(paste(symbol, "_years_2017_2021", sep = ""))>1)
+      dat <- dat %>% filter(get(paste(symbol, "_years_2017_2021", sep = ""))>=num_years_cutoff)
       
+      if(title_on){
       plot.subtitle <- str_wrap(paste("By number of years & relative document frequency, ",
                                       consensus, " consensus threshold, ",
                                       percentile_label, " percentile threshold",
                                       sep = ""), width = 51)
-      
+      } else {plot.subtitle <- NULL}
     }
     
     if(sort_by=="freq") {
@@ -72,10 +76,12 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, i
                size = as.character(get(paste(symbol, "_years_2017_2021", sep = "")))) %>%
         slice_head(n = 30)
       
+      if(title_on){
       plot.subtitle <- str_wrap(paste("Top 30 by relative document frequency,     ",
                                       consensus, " consensus threshold, ",
                                       percentile_label, " percentile threshold",
                                       sep = ""), width = 51)
+      } else {plot.subtitle <- NULL}
     }
     
     if(sort_by=="freq_byyear") {
@@ -87,6 +93,7 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, i
                size = as.character(get(paste(symbol, "_years_2017_2021", sep = "")))) %>%
         slice_head(n = 30)
       
+      if(title_on){
       plot.title <- paste(corpus, " ", 
                           symbol_label, "s, ", 
                           input_year, sep = "")
@@ -94,6 +101,8 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, i
                                       consensus, " consensus threshold, ",
                                       percentile_label, " percentile threshold",
                                       sep = ""), width = 51)
+      } else {plot.title <- NULL
+              plot.subtitle <- NULL}
     }
     
     if(sort_by=="conductivity") {
@@ -103,10 +112,12 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, i
                size = conductivity) %>%
         slice_head(n = 30)
       
+      if(title_on){
       plot.subtitle <- str_wrap(paste("Top 30 by network conductivity,     ",
                                       consensus, " consensus threshold, ",
                                       percentile_label, " percentile threshold",
                                       sep = ""), width = 51)
+      } else {plot.subtitle <- NULL}
       
       size.legend <- "network connectivity"
       size.values <- NULL
@@ -139,7 +150,7 @@ makeTopSymbolPlots <- function(sort_by = "yearfreq", input_data, input_suffix, i
     if(sort_by=="freq" | sort_by=="yearfreq" | sort_by=="freq_byyear") {
       plot <- plot + 
         scale_size_manual(name = str_wrap(paste("number years as ", symbol_label, sep = ""),
-                                          width = 8),
+                                          width = 12),
                           values = c("1" = 1.5,
                                      "2" = 2.75,
                                      "3" = 4,
@@ -176,50 +187,22 @@ makeTopSymbolPlots(sort_by = "yearfreq",
                    input_data = compare_symbol_types_a, 
                    input_suffix = "a", 
                    corpus = "Academic", 
-                   symbol = "placeholder",
-                   consensus = 0.25,
-                   percentile = 0.4)
-
-makeTopSymbolPlots(sort_by = "yearfreq",
-                   input_data = compare_symbol_types_a, 
-                   input_suffix = "a", 
-                   corpus = "Academic", 
-                   symbol = "buzzword",
-                   consensus = 0.25,
-                   percentile = 0.4)
-
-makeTopSymbolPlots(sort_by = "yearfreq",
-                   input_data = compare_symbol_types_a, 
-                   input_suffix = "a", 
-                   corpus = "Academic", 
                    symbol = "buzzplace",
                    consensus = 0.25,
-                   percentile = 0.5)
+                   percentile = 0.45, 
+                   num_years_cutoff = 3,
+                   title_on = FALSE)
 
 # -- ngo
 makeTopSymbolPlots(sort_by = "yearfreq",
                    input_data = compare_symbol_types_n, 
                    input_suffix = "n", 
                    corpus = "NGO", 
-                   symbol = "placeholder",
-                   consensus = 0.5,
-                   percentile = 0.4)
-
-makeTopSymbolPlots(sort_by = "yearfreq",
-                   input_data = compare_symbol_types_n, 
-                   input_suffix = "n", 
-                   corpus = "NGO", 
-                   symbol = "buzzword",
-                   consensus = 0.5,
-                   percentile = 0.4)
-
-makeTopSymbolPlots(sort_by = "yearfreq",
-                   input_data = compare_symbol_types_n, 
-                   input_suffix = "n", 
-                   corpus = "NGO", 
                    symbol = "buzzplace",
                    consensus = 0.5,
-                   percentile = 0.5)
+                   percentile = 0.45,
+                   num_years_cutoff = 2,
+                   title_on = FALSE)
 
 
 # -- media -- NYT
@@ -227,17 +210,11 @@ makeTopSymbolPlots(sort_by = "yearfreq",
                    input_data = compare_symbol_types_m_nyt, 
                    input_suffix = "m_nyt_filt", 
                    corpus = "Media - NYT", 
-                   symbol = "placeholder",
-                   consensus = 0.5,
-                   percentile = 0.4)
-
-makeTopSymbolPlots(sort_by = "yearfreq",
-                   input_data = compare_symbol_types_m_nyt, 
-                   input_suffix = "m_nyt_filt", 
-                   corpus = "Media - NYT", 
                    symbol = "buzzplace",
                    consensus = 0.5,
-                   percentile = 0.4)
+                   percentile = 0.45,
+                   num_years_cutoff = 3,
+                   title_on = FALSE)
 
 
 # ---- make top symbol plots just sorting by frequency only ----
@@ -247,22 +224,6 @@ makeTopSymbolPlots(sort_by = "freq",
                    input_data = compare_symbol_types_a, 
                    input_suffix = "a", 
                    corpus = "Academic", 
-                   symbol = "placeholder",
-                   consensus = 0.25,
-                   percentile = 0.5)
-
-makeTopSymbolPlots(sort_by = "freq",
-                   input_data = compare_symbol_types_a, 
-                   input_suffix = "a", 
-                   corpus = "Academic", 
-                   symbol = "buzzword",
-                   consensus = 0.25,
-                   percentile = 0.5)
-
-makeTopSymbolPlots(sort_by = "freq",
-                   input_data = compare_symbol_types_a, 
-                   input_suffix = "a", 
-                   corpus = "Academic", 
                    symbol = "buzzplace",
                    consensus = 0.25,
                    percentile = 0.5)
@@ -272,22 +233,15 @@ makeTopSymbolPlots(sort_by = "freq",
                    input_data = compare_symbol_types_n, 
                    input_suffix = "n", 
                    corpus = "NGO", 
-                   symbol = "placeholder",
+                   symbol = "buzzplace",
                    consensus = 0.5,
                    percentile = 0.5)
 
+# -- media
 makeTopSymbolPlots(sort_by = "freq",
-                   input_data = compare_symbol_types_n, 
-                   input_suffix = "n", 
-                   corpus = "NGO", 
-                   symbol = "buzzword",
-                   consensus = 0.5,
-                   percentile = 0.5)
-
-makeTopSymbolPlots(sort_by = "freq",
-                   input_data = compare_symbol_types_n, 
-                   input_suffix = "n", 
-                   corpus = "NGO", 
+                   input_data = compare_symbol_types_m_nyt, 
+                   input_suffix = "m_nyt_filt", 
+                   corpus = "Media - NYT", 
                    symbol = "buzzplace",
                    consensus = 0.5,
                    percentile = 0.5)
@@ -427,7 +381,7 @@ makeTopSymbolPlots(sort_by = "freq_byyear",
                    input_year = 2021,
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.5,
+                   consensus = 0.75,
                    percentile = 0.5)
 
 makeTopSymbolPlots(sort_by = "freq_byyear",
@@ -436,7 +390,7 @@ makeTopSymbolPlots(sort_by = "freq_byyear",
                    input_year = 2020,
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.5,
+                   consensus = 0.75,
                    percentile = 0.5)
 
 makeTopSymbolPlots(sort_by = "freq_byyear",
@@ -445,7 +399,7 @@ makeTopSymbolPlots(sort_by = "freq_byyear",
                    input_year = 2019,
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.5,
+                   consensus = 0.75,
                    percentile = 0.5)
 
 makeTopSymbolPlots(sort_by = "freq_byyear",
@@ -454,7 +408,7 @@ makeTopSymbolPlots(sort_by = "freq_byyear",
                    input_year = 2018,
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.5,
+                   consensus = 0.75,
                    percentile = 0.5)
 
 makeTopSymbolPlots(sort_by = "freq_byyear",
@@ -463,5 +417,32 @@ makeTopSymbolPlots(sort_by = "freq_byyear",
                    input_year = 2017,
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
-                   consensus = 0.5,
+                   consensus = 0.75,
                    percentile = 0.5)
+
+# ---- make top symbol plots for academic subgroups, by yearfreq ----
+
+makeTopSymbolPlots(sort_by = "yearfreq",
+                   input_data = compare_symbol_types_a_consbio, 
+                   input_suffix = "a_consbio", 
+                   corpus = "Conservation Biology", 
+                   symbol = "buzzplace",
+                   consensus = 0.5,
+                   percentile = 0.45)
+
+makeTopSymbolPlots(sort_by = "yearfreq",
+                   input_data = compare_symbol_types_a_gec, 
+                   input_suffix = "a_gec", 
+                   corpus = "Global Env Change", 
+                   symbol = "buzzplace",
+                   consensus = 0.75,
+                   percentile = 0.3)
+
+makeTopSymbolPlots(sort_by = "yearfreq",
+                   input_data = compare_symbol_types_a_sust, 
+                   input_suffix = "a_sust", 
+                   corpus = "Sustainability Science", 
+                   symbol = "buzzplace",
+                   consensus = 0.75,
+                   percentile = 0.3)
+
