@@ -330,7 +330,7 @@ timeplot_innovation <- PlotTrajectories_compareCorpora("innovation", focalword_a
 timeplot_adaptation <- PlotTrajectories_compareCorpora("adaptation", focalword_attributes, upper_limit = 0.6)
 timeplot_climate_smart <- PlotTrajectories_compareCorpora("climate-smart", focalword_attributes, upper_limit = 0.6)
 
-# doesn't show up at all
+# doesn't show up at all 
 timeplot_nature_positive <- PlotTrajectories_compareCorpora("nature positive", focalword_attributes, upper_limit = 0.6)
 timeplot_net_zero <- PlotTrajectories_compareCorpora("net zero", focalword_attributes, upper_limit = 0.6)
 timeplot_extinction <- PlotTrajectories_compareCorpora("extinction", focalword_attributes, upper_limit = 0.6)
@@ -338,6 +338,8 @@ timeplot_illegal <- PlotTrajectories_compareCorpora("illegal", focalword_attribu
 timeplot_deforestation <- PlotTrajectories_compareCorpora("deforestation", focalword_attributes, upper_limit = 0.6)
 timeplot_vulnerable <- PlotTrajectories_compareCorpora("vulnerable", focalword_attributes, upper_limit = 0.6)
 timeplot_stakeholder <- PlotTrajectories_compareCorpora("stakeholder", focalword_attributes, upper_limit = 0.6)
+timeplot_woke <- PlotTrajectories_compareCorpora("woke", focalword_attributes, upper_limit = 0.6)
+
 
 # Academic speak
 timeplot_benefit <- PlotTrajectories_compareCorpora("benefit", focalword_attributes, upper_limit = 0.8)
@@ -356,6 +358,10 @@ timeplot_indigenous_people <- PlotTrajectories_compareCorpora("indigenous people
 timeplot_engagement <- PlotTrajectories_compareCorpora("engagement", focalword_attributes, upper_limit = 0.6)
 timeplot_collaborate <- PlotTrajectories_compareCorpora("collaborate", focalword_attributes, upper_limit = 0.6)
 timeplot_resilience <- PlotTrajectories_compareCorpora("resilience", focalword_attributes, upper_limit = 0.6)
+
+timeplot_net <- PlotTrajectories_compareCorpora("net", focalword_attributes, upper_limit = 0.6)
+
+
 
 # UN CBD and IPBES speak
 timeplot_context <- PlotTrajectories_compareCorpora("context", focalword_attributes, upper_limit = 0.6)
@@ -468,7 +474,7 @@ compareplot_n5 <- PlotTrajectories_compareWords(focal_corpus = "ngo",
 
 # ---- 5.1 Wrangle semantic maps for looking at links ----
 
-focalword_coocGraph <- function(focal_word, years = 2017:2021, 
+focalword_coocGraph <- function(focal_word, years = 2017:2022, 
                                 input_corpora = c("a", "n", "m_nyt_filt"),
                                 input_file = NULL) {
   
@@ -486,6 +492,8 @@ focalword_coocGraph <- function(focal_word, years = 2017:2021,
     
     for(j in input_corpora) {
       
+      if(file.exists(paste("data/outputs/coocGraphs/", most_recent_coocGraph_folder, "/coocGraph_", j, "_", i, ".csv", sep = ""))) {
+    
       coocGraph <- 
         bind_rows(coocGraph,
                   read_csv(paste("data/outputs/coocGraphs/", most_recent_coocGraph_folder, "/coocGraph_", j, "_", i, ".csv", sep = ""),
@@ -506,6 +514,7 @@ focalword_coocGraph <- function(focal_word, years = 2017:2021,
                     mutate(prop_node_freq = coocFreq/node_freq,
                            prop_focal_freq = coocFreq/focal_freq)
         )
+      } else { next }
     }
   }
   
@@ -517,10 +526,12 @@ focalword_coocGraph <- function(focal_word, years = 2017:2021,
   return(coocGraph)
 }
 
+
 # ---- biodiversity ----
 
 coocGraph_biodiversity <- 
-  focalword_coocGraph(focal_word = "biodiversity") 
+  focalword_coocGraph(focal_word = "biodiversity", 
+                      input_corpora = c("a", "n", "m_nyt_filt", "p"),) 
 
 linkages_biodiversity <-
   coocGraph_biodiversity %>%
@@ -529,6 +540,379 @@ linkages_biodiversity <-
   arrange(desc(prop_focal_freq), .by_group = T) %>%
   summarise(n_cooc = length(node),
             coocs = list(node))
+
+linkages_biodiversity_long <-
+  coocGraph_biodiversity %>%
+  distinct() %>%
+  filter((corpus=="ngo" & year==2021) |
+           (corpus=="media" & year==2021) |
+           (corpus=="policy" & year==2022) | 
+           (corpus=="academic" & year==2021)) %>%
+  group_by(focal_word, corpus) %>%
+  slice_max(prop_focal_freq, n = 6) %>%
+  mutate(keep = 1) %>%
+  ungroup() %>%
+  select(node, keep) %>% 
+  distinct() %>%
+  left_join(coocGraph_biodiversity %>% filter((corpus=="ngo" & year==2021) |
+                                             (corpus=="media" & year==2021) |
+                                             (corpus=="policy" & year==2022) | 
+                                             (corpus=="academic" & year==2021)), ., by = "node") %>%
+  filter(keep==1) %>%
+  arrange(corpus, prop_focal_freq) %>%
+  mutate(node = factor(node, levels = unique(node), ordered = T))
+
+
+
+biodiversity_allinstitutions_heatmap <-
+  ggplot(linkages_biodiversity_long, 
+         aes(y = node, x = corpus, fill = prop_focal_freq)) +
+  geom_tile(alpha = 0.7) +
+  scale_fill_distiller(name = "Proportion\n'biodiversity'\nappears\nwith word",
+                       palette = "Blues",
+                       direction = 1) +
+  scale_x_discrete(expand = c(0, 0),
+                   labels = c("Academic\n(2021)", "Media\n(2021)", "NGO\n(2021)", "Policy\n(UNCBD 2022)"),
+                   drop = F) +
+  scale_y_discrete(expand = c(0, 0)) +
+  labs(title = "Biodiversity ", y = "", x = "") +
+  theme_minimal() +
+  theme(axis.text = element_text(size = 11),
+        plot.title = element_text(size = 14, face = "bold"))
+# 
+# biodiversity_ngo_heatmap <-
+#   ggplot(linkages_biodiversity_long %>% filter(corpus=="ngo"), aes(y = node, x = year, fill = prop_focal_freq)) +
+#   geom_tile(alpha = 0.9) +
+#   scale_fill_distiller(name = "% 'Biodiversity'\nappears with word",
+#                        palette = "Blues",
+#                        direction = 1) +
+#   scale_x_discrete(expand = c(0, 0),
+#                    drop = F) +
+#   scale_y_discrete(expand = c(0, 0)) +
+#   labs(title = "Biodiversity - NGOs", y = "", x = "") +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 11))
+# 
+# biodiversity_academic_heatmap <-
+#   ggplot(linkages_biodiversity_long %>% filter(corpus=="academic"), aes(y = node, x = year, fill = prop_focal_freq)) +
+#   geom_tile(alpha = 0.9) +
+#   scale_fill_distiller(name = "% 'Biodiversity'\nappears with word",
+#                        palette = "Blues",
+#                        direction = 1) +
+#   scale_x_discrete(expand = c(0, 0),
+#                    drop = F) +
+#   scale_y_discrete(expand = c(0, 0)) +
+#   labs(title = "Biodiversity - Academic", y = "", x = "") +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 11))
+# 
+# biodiversity_media_heatmap <-
+#   ggplot(linkages_biodiversity_long %>% filter(corpus=="media"), aes(y = node, x = year, fill = prop_focal_freq)) +
+#   geom_tile(alpha = 0.9) +
+#   scale_fill_distiller(name = "% 'Biodiversity'\nappears with word",
+#                        palette = "Blues",
+#                        direction = 1) +
+#   scale_x_discrete(expand = c(0, 0),
+#                    drop = F) +
+#   scale_y_discrete(expand = c(0, 0)) +
+#   labs(title = "Biodiversity - Media", y = "", x = "") +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 11))
+
+
+# ---- safeguard ----
+
+coocGraph_safeguard <- 
+  focalword_coocGraph(focal_word = "safeguard",
+                      input_corpora = c("a", "n", "m_nyt_filt", "p")) 
+
+linkages_safeguard <-
+  coocGraph_safeguard %>%
+  distinct() %>%
+  group_by(focal_word, corpus, year) %>%
+  arrange(desc(prop_focal_freq), .by_group = T) %>%
+  summarise(n_cooc = length(node),
+            coocs = list(node))
+
+
+linkages_safeguard_long <-
+  coocGraph_safeguard %>%
+  distinct() %>%
+  filter((corpus=="ngo" & year==2021) |
+           (corpus=="media" & year==2018) |
+           (corpus=="policy" & year==2019)) %>%
+  group_by(focal_word, corpus) %>%
+  slice_max(prop_focal_freq, n = 6) %>%
+  mutate(keep = 1) %>%
+  ungroup() %>%
+  select(node, keep) %>% 
+  distinct() %>%
+  left_join(coocGraph_safeguard %>% filter((corpus=="ngo" & year==2021) |
+                                             (corpus=="media" & year==2018) |
+                                             (corpus=="policy" & year==2019)), ., by = "node") %>%
+  filter(keep==1) %>%
+  arrange(corpus, prop_focal_freq) %>%
+  mutate(node = factor(node, levels = unique(node), ordered = T))
+
+
+
+safeguard_allinstitutions_heatmap <-
+  ggplot(linkages_safeguard_long, 
+         aes(y = node, x = corpus, fill = prop_focal_freq)) +
+  geom_tile(alpha = 0.7) +
+  scale_fill_distiller(name = "Proportion\n'safeguard'\nappears\nwith word",
+                       palette = "Blues",
+                       direction = 1) +
+  scale_x_discrete(expand = c(0, 0),
+                   labels = c("Media\n(2018)", "NGO\n(2021)", "Policy\n(IPBES 2019)"),
+                   drop = F) +
+  scale_y_discrete(expand = c(0, 0)) +
+  labs(title = "Safeguard", y = "", x = "") +
+  theme_minimal() +
+  theme(axis.text = element_text(size = 11),
+        plot.title = element_text(size = 14, face = "bold"))
+
+
+# linkages_safeguard_long <-
+#   coocGraph_safeguard %>%
+#   distinct() %>%
+#   mutate(keep = case_when(corpus=="ngo" & prop_focal_freq>=0.6 ~ 1,
+#                           corpus=="academic" & prop_focal_freq>=0.2 ~ 1,
+#                           corpus=="media" & prop_focal_freq>=0.1 ~ 1,
+#                           TRUE ~ 0)) %>%
+#   group_by(focal_word, node, corpus) %>%
+#   mutate(keep_word = sum(keep),
+#          year = factor(year, 
+#                        levels = c("2017", "2018", "2019", "2020", "2021"), 
+#                        ordered = T)) %>%
+#   ungroup() %>%
+#   filter(keep_word>0)
+# 
+# safeguard_ngo_heatmap <-
+#   ggplot(linkages_safeguard_long %>% filter(corpus=="ngo"), aes(y = node, x = year, fill = prop_focal_freq)) +
+#   geom_tile(alpha = 0.9) +
+#   scale_fill_distiller(name = "% 'Safeguard'\nappears with word",
+#                        palette = "Blues",
+#                        direction = 1) +
+#   scale_x_discrete(expand = c(0, 0),
+#                    drop = F) +
+#   scale_y_discrete(expand = c(0, 0)) +
+#   labs(title = "Safeguard - NGOs", y = "", x = "") +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 11))
+# 
+# safeguard_media_heatmap <-
+#   ggplot(linkages_safeguard_long %>% filter(corpus=="media"), aes(y = node, x = year, fill = prop_focal_freq)) +
+#   geom_tile(alpha = 0.9) +
+#   scale_fill_distiller(name = "% 'Safeguard'\nappears with word",
+#                        palette = "Blues",
+#                        direction = 1) +
+#   scale_x_discrete(expand = c(0, 0),
+#                    drop = F) +
+#   scale_y_discrete(expand = c(0, 0)) +
+#   labs(title = "Safeguard - Media", y = "", x = "") +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 11))
+
+
+# ---- hope ----
+
+coocGraph_hope <- 
+  focalword_coocGraph(focal_word = "hope",
+                      input_corpora = c("a", "n", "m_nyt_filt", "p")) 
+
+linkages_hope <-
+  coocGraph_hope %>%
+  distinct() %>%
+  group_by(focal_word, corpus, year) %>%
+  arrange(desc(prop_focal_freq), .by_group = T) %>%
+  summarise(n_cooc = length(node),
+            coocs = list(node))
+
+linkages_hope_long <-
+  coocGraph_hope %>%
+  distinct() %>%
+  filter((corpus=="ngo" & year==2021) |
+           (corpus=="media" & year==2021)) %>%
+  group_by(focal_word, corpus) %>%
+  slice_max(prop_focal_freq, n = 6) %>%
+  mutate(keep = 1) %>%
+  ungroup() %>%
+  select(node, keep) %>% 
+  distinct() %>%
+  left_join(coocGraph_hope %>% filter((corpus=="ngo" & year==2021) |
+                                             (corpus=="media" & year==2021)), ., by = "node") %>%
+  filter(keep==1) %>%
+  arrange(corpus, prop_focal_freq) %>%
+  mutate(node = factor(node, levels = unique(node), ordered = T))
+
+
+
+hope_allinstitutions_heatmap <-
+  ggplot(linkages_hope_long, 
+         aes(y = node, x = corpus, fill = prop_focal_freq)) +
+  geom_tile(alpha = 0.7) +
+  scale_fill_distiller(name = "Proportion\n'hope'\nappears\nwith word",
+                       palette = "Blues",
+                       direction = 1) +
+  scale_x_discrete(expand = c(0, 0),
+                   labels = c("Media\n(2021)", "NGO\n(2021)"),
+                   drop = F) +
+  scale_y_discrete(expand = c(0, 0)) +
+  labs(title = "Hope", y = "", x = "") +
+  theme_minimal() +
+  theme(axis.text = element_text(size = 11),
+        plot.title = element_text(size = 14, face = "bold"))
+
+# linkages_hope_long <-
+#   coocGraph_hope %>%
+#   distinct() %>%
+#   mutate(keep = case_when(corpus=="ngo" & prop_focal_freq>=0.6 ~ 1,
+#                           corpus=="academic" & prop_focal_freq>=0.2 ~ 1,
+#                           corpus=="media" & prop_focal_freq>=0.5 ~ 1,
+#                           TRUE ~ 0)) %>%
+#   group_by(focal_word, node, corpus) %>%
+#   mutate(keep_word = sum(keep),
+#          year = factor(year, 
+#                        levels = c("2017", "2018", "2019", "2020", "2021"), 
+#                        ordered = T)) %>%
+#   ungroup() %>%
+#   filter(keep_word>0)
+# 
+# hope_ngo_heatmap <-
+#   ggplot(linkages_hope_long %>% filter(corpus=="ngo"), aes(y = node, x = year, fill = prop_focal_freq)) +
+#   geom_tile(alpha = 0.9) +
+#   scale_fill_distiller(name = "% 'Hope'\nappears with word",
+#                        palette = "Blues",
+#                        direction = 1) +
+#   scale_x_discrete(expand = c(0, 0),
+#                    drop = F) +
+#   scale_y_discrete(expand = c(0, 0)) +
+#   labs(title = "Hope - NGOs", y = "", x = "") +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 11))
+# 
+# hope_media_heatmap <-
+#   ggplot(linkages_hope_long %>% filter(corpus=="media"), aes(y = node, x = year, fill = prop_focal_freq)) +
+#   geom_tile(alpha = 0.9) +
+#   scale_fill_distiller(name = "% 'Hope'\nappears with word",
+#                        palette = "Blues",
+#                        direction = 1) +
+#   scale_x_discrete(expand = c(0, 0),
+#                    drop = F) +
+#   scale_y_discrete(expand = c(0, 0)) +
+#   labs(title = "Hope - Media", y = "", x = "") +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 11))
+
+
+# ---- landscape ----
+
+coocGraph_landscape <- 
+  focalword_coocGraph(focal_word = "landscape",
+                      input_corpora = c("a", "n", "m_nyt_filt", "p")) 
+
+linkages_landscape <-
+  coocGraph_landscape %>%
+  distinct() %>%
+  group_by(focal_word, corpus, year) %>%
+  arrange(desc(prop_focal_freq), .by_group = T) %>%
+  summarise(n_cooc = length(node),
+            coocs = list(node))
+
+linkages_landscape_long <-
+  coocGraph_landscape %>%
+  distinct() %>%
+  filter((corpus=="ngo" & year==2021) |
+           (corpus=="media" & year==2021) |
+           (corpus=="academic" & year==2021) |
+           (corpus=="policy" & year==2019)) %>%
+  group_by(focal_word, corpus) %>%
+  slice_max(prop_focal_freq, n = 6) %>%
+  mutate(keep = 1) %>%
+  ungroup() %>%
+  select(node, keep) %>% 
+  distinct() %>%
+  left_join(coocGraph_landscape %>% filter((corpus=="ngo" & year==2021) |
+                                        (corpus=="media" & year==2021) |
+                                          (corpus=="academic" & year==2021) |
+                                          (corpus=="policy" & year==2019)), ., by = "node") %>%
+  filter(keep==1) %>%
+  arrange(corpus, prop_focal_freq) %>%
+  mutate(node = factor(node, levels = unique(node), ordered = T))
+
+
+landscape_allinstitutions_heatmap <-
+  ggplot(linkages_landscape_long, 
+         aes(y = node, x = corpus, fill = prop_focal_freq)) +
+  geom_tile(alpha = 0.7) +
+  scale_fill_distiller(name = "Proportion\n'landscape'\nappears\nwith word",
+                       palette = "Blues",
+                       direction = 1) +
+  scale_x_discrete(expand = c(0, 0),
+                   labels = c("Academic\n(2021)", "Media\n(2021)", "NGO\n(2021)", "Policy\n(IPBES 2019)"),
+                   drop = F) +
+  scale_y_discrete(expand = c(0, 0)) +
+  labs(title = "Landscape", y = "", x = "") +
+  theme_minimal() +
+  theme(axis.text = element_text(size = 11),
+        plot.title = element_text(size = 14, face = "bold"))
+
+# 
+# linkages_landscape_long <-
+#   coocGraph_landscape %>%
+#   distinct() %>%
+#   mutate(keep = case_when(corpus=="ngo" & prop_focal_freq>=0.6 ~ 1,
+#                           corpus=="academic" & prop_focal_freq>=0.2 ~ 1,
+#                           corpus=="media" & prop_focal_freq>=0.4 ~ 1,
+#                           TRUE ~ 0)) %>%
+#   group_by(focal_word, node, corpus) %>%
+#   mutate(keep_word = sum(keep),
+#          year = factor(year, 
+#                        levels = c("2017", "2018", "2019", "2020", "2021"), 
+#                        ordered = T)) %>%
+#   ungroup() %>%
+#   filter(keep_word>0)
+# 
+# landscape_ngo_heatmap <-
+#   ggplot(linkages_landscape_long %>% filter(corpus=="ngo"), aes(y = node, x = year, fill = prop_focal_freq)) +
+#   geom_tile(alpha = 0.9) +
+#   scale_fill_distiller(name = "% 'Landscape'\nappears with word",
+#                        palette = "Blues",
+#                        direction = 1) +
+#   scale_x_discrete(expand = c(0, 0),
+#                    drop = F) +
+#   scale_y_discrete(expand = c(0, 0)) +
+#   labs(title = "Landscape - NGOs", y = "", x = "") +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 11))
+# 
+# landscape_academic_heatmap <-
+#   ggplot(linkages_landscape_long %>% filter(corpus=="academic"), aes(y = node, x = year, fill = prop_focal_freq)) +
+#   geom_tile(alpha = 0.9) +
+#   scale_fill_distiller(name = "% 'Landscape'\nappears with word",
+#                        palette = "Blues",
+#                        direction = 1) +
+#   scale_x_discrete(expand = c(0, 0),
+#                    drop = F) +
+#   scale_y_discrete(expand = c(0, 0)) +
+#   labs(title = "Landscape - Academic", y = "", x = "") +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 11))
+# 
+# landscape_media_heatmap <-
+#   ggplot(linkages_landscape_long %>% filter(corpus=="media"), aes(y = node, x = year, fill = prop_focal_freq)) +
+#   geom_tile(alpha = 0.9) +
+#   scale_fill_distiller(name = "% 'Landscape'\nappears with word",
+#                        palette = "Blues",
+#                        direction = 1) +
+#   scale_x_discrete(expand = c(0, 0),
+#                    drop = F) +
+#   scale_y_discrete(expand = c(0, 0)) +
+#   labs(title = "Landscape - Media", y = "", x = "") +
+#   theme_minimal() +
+#   theme(axis.text = element_text(size = 11))
+
 
 # ---- nature ----
 
