@@ -68,19 +68,19 @@ thesaurus <- rbind(hash_lemmas, add_to_lemma) %>%
                            lemma=="standardise" ~ "standardize",
                            TRUE ~ lemma)
   ) %>%
-  filter(token!="number" & token!="data")
+  filter(token!="number" & token!="data" & token!="well")
 
 
 # ---- Stopwords ----
 
 add_to_stopwords <- c(# highly frequent proper nouns
-                      "tnc", "iucn", "wwf", "dswf", "ecohealth", "iied", "ci", "wcs", 
+                      "tnc", "iucn", "wwf", "dswf", "ecohealth", "iied", "ci", "wcs", "birdlife", 
                       
                       
                       # abbreviations & numbers (not removed through tokenization process)
                       "μmol", "a2", "ca", "cm", "co2", "c4", "e.g", "es", "ess", "gi", "ha",  
                       "î", "kg", "km", "km2", "lt", "n2", "o2", "pa", "ph", "r", 
-                      "-1", "-2", "-based", "0-3", "1-2", "10", "10-13", "10-20", "10-30", 
+                      "-1", "-2", "-based", "000", "0-3", "1-2", "10", "10-13", "10-20", "10-30", 
                       "10-year", "100-year", "100-150", "12th", "13c", "15n", "1800s", "1830s", "1880s", "19", "19th",
                       "1900s", "1920s", "1930s", "1940s", "1950s", "1960s", "1970s", "1980s", "1990s", 
                       "1980-2000", "1988-1991", "1994-1995", "1995-1998", "1995-2000", "1996-1998", 
@@ -95,10 +95,12 @@ add_to_stopwords <- c(# highly frequent proper nouns
 
 # Import parts-of-speech tagged stopwords list (already includes standard stopwords list), 
 # add additional words from above (manually identified)
-stopwords_extended <- c(scan("code/source/stopwords_extended_pos.txt", character()), add_to_stopwords)
-
+stopwords_extended <- data.frame(word = c(scan("code/source/stopwords_extended_pos.txt", character()), add_to_stopwords), 
+                                 stopword = 1)
+stopwords_basic <- data.frame(word = stopwords::stopwords(source = "smart"), stopword = 1)
 
 # collocates stopword list
-collocates_stopwords <- c("birdlife_international", "birdlife_partner", "birdlife", "conservation_international",
-                          "nature_conservancy", "david_shepherd_wildlife_foundation", "david_shepherd", 
-                          "world_wildlife_fund", "wetlands_international", "unite_state")
+collocates_stopwords <- data.frame(bigram = c("birdlife international", "birdlife partner", "conservation international",
+                                              "nature conservancy", "david shepherd wildlife foundation", "david shepherd", 
+                                              "world wildlife fund", "wetlands international", "unite state"),
+                                   stopword = 1)

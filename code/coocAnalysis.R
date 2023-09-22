@@ -64,6 +64,12 @@ percentile_thresholds <- c(0.3, 0.45, 0.5)
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
 
+docs_m_unfilt <- read_csv("data/corpora/processed/docs_m_unfiltered.csv", locale = readr::locale(encoding = "UTF-8"))
+
+docs_m <- docs_m_unfilt %>%
+  filter(grepl("NewYorkTimes", publication)==T) %>%
+  filter(grepl("conservation|sustainability|natural resource|climate change|global warming|environmental protection|species", 
+               subject, ignore.case = T)==T)
 
 # ---- 2.1 Import corpus documents ----
 
@@ -75,20 +81,15 @@ docs_p <- read_csv("data/corpora/processed/docs_p.csv", locale = readr::locale(e
 
 # ---- 2.2 Subset corpus docs as needed ----
 
-docs_m_nyt <- docs_m %>%
-  filter(grepl("NewYorkTimes", publication)==T)
 
-docs_m_nyt_filt <- 
-  docs_m_nyt %>%
-  filter(grepl("conservation|sustainability|natural resource|climate change|global warming|environmental protection|species", 
-               subject, ignore.case = T)==T)
 
+docs_n %>% group_by(org_id) %>% summarise(doc_year = length(unique(year))) %>% ungroup() %>% summarise(sum = sum(doc_year))
 
 # ---- 2.3 Subset DTMs per year, create co-occurrence networks, and export to flat file ----
 ## COMPUTATIONALLY INTENSIVE -- ONLY RUN ONCE AND THEN SOURCE IN FLAT FILES TO DO ANALYSIS IN SECTION 3 AND BEYOND
 
-coocGraphsPerYear(input_data = docs_n, input_suffix = "n", years = 2017:2021, 
-                  sd_multiplier = 3, stopword_list = stopwords_extended,
+coocGraphsPerYear(input_data = docs_p, input_suffix = "p", years = c(2019, 2022), 
+                  sd_multiplier = 3, stopword_list = stopwords_extended$word,
                   coocTerm = "conservation",
                   n_cores = 1)
 
@@ -97,7 +98,7 @@ coocGraphsPerYear(input_data = docs_n, input_suffix = "n", years = 2017:2021,
 
 findNodeAttributes(input_suffix = "p", 
                    years = c(2019, 2022), 
-                   consensus_thresholds = c(0.25, 0.33, 0.5, 0.75), 
+                   consensus_thresholds = c(0.5, 0.6, 0.7, 0.75), 
                    percentile_thresholds = c(0.35, 0.4, 0.45, 0.5),
                    coocTerm = "conservation", 
                    export = T)
@@ -329,11 +330,78 @@ place_and_buzz_n_c0.5_t0.5 <-
   arrange(desc(place_buzz_years))
 
 
-# ---- Academic corpus deep dive ----
+# institution-level averages (network measures, prop different word types, etc.)
 
+network_avgs_a <-
+  years_compare_a %>% 
+  filter(percentile_threshold==0.5) %>% 
+  ungroup() %>%
+  summarise(avg_degree = mean(avg_degree),
+            avg_conductivity = mean(avg_conductivity),
+            avg_consensus = mean(avg_consensus),
+            avg_nodes = mean(n_nodes),
+            avg_prop_placeholders = mean(n_placeholders) / avg_nodes)
 
+avg_placeholder_length_a <-
+  node_attributes_a %>%
+  filter(consensus_threshold==0.25 & percentile_threshold==0.5 & symbol_type=="placeholder" & year%in%c(2017:2021)) %>%
+  group_by(node) %>%
+  summarise(n_years_placeholder = length(node)) %>%
+  ungroup() %>%
+  summarise(avg_years_placeholder = mean(n_years_placeholder),
+            n_placeholders = length(node))
+  
 
-# ---- Explore ----
-DTM_a <- readRDS("data/outputs/DTMs/20230512/DTM_a_2021.rds")
-wordcounts_a <- t(DTM_a) %*% DTM_a
-wordcounts_a["sustainability","sustainability"]
+network_avgs_n <-
+  years_compare_n %>% 
+  filter(percentile_threshold==0.5) %>% 
+  ungroup() %>%
+  summarise(avg_degree = mean(avg_degree),
+            avg_conductivity = mean(avg_conductivity),
+            avg_consensus = mean(avg_consensus),
+            avg_nodes = mean(n_nodes),
+            avg_prop_placeholders = mean(n_placeholders) / avg_nodes)
+
+avg_placeholder_length_n <-
+  node_attributes_n %>%
+  filter(consensus_threshold==0.5 & percentile_threshold==0.5 & symbol_type=="placeholder") %>%
+  group_by(node) %>%
+  summarise(n_years_placeholder = length(node)) %>%
+  ungroup() %>%
+  summarise(avg_years_placeholder = mean(n_years_placeholder),
+            n_placeholders = length(node))
+
+network_avgs_m <-
+  years_compare_m_nyt_filt %>% 
+  filter(percentile_threshold==0.5 & !is.na(year)) %>% 
+  ungroup() %>%
+  summarise(avg_degree = mean(avg_degree),
+            avg_conductivity = mean(avg_conductivity),
+            avg_consensus = mean(avg_consensus),
+            avg_nodes = mean(n_nodes),
+            avg_prop_placeholders = mean(n_placeholders) / avg_nodes)
+
+avg_placeholder_length_m <-
+  node_attributes_m_nyt_filt %>%
+  filter(consensus_threshold==0.5 & percentile_threshold==0.5 & symbol_type=="placeholder") %>%
+  group_by(node) %>%
+  summarise(n_years_placeholder = length(node)) %>%
+  ungroup() %>%
+  summarise(avg_years_placeholder = mean(n_years_placeholder),
+            n_placeholders = length(node))
+
+network_avgs_p <-
+  years_compare_p %>% 
+  filter(percentile_threshold==0.5) %>% 
+  summarise(avg_degree = mean(avg_degree),
+            avg_conductivity = mean(avg_conductivity),
+            avg_consensus = mean(avg_consensus),
+            avg_nodes = mean(n_nodes),
+            avg_prop_placeholders = mean(n_placeholders) / avg_nodes)
+
+n_placeholders_p <-
+  node_attributes_p %>%
+  filter(consensus_threshold==0.75 & percentile_threshold==0.5 & symbol_type=="placeholder") %>%
+  group_by(year) %>%
+  summarise(n_placeholders = length(node))
+

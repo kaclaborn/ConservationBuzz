@@ -189,7 +189,17 @@ makeTopSymbolPlots(sort_by = "yearfreq",
                    corpus = "Academic", 
                    symbol = "buzzplace",
                    consensus = 0.25,
-                   percentile = 0.45, 
+                   percentile = 0.5, 
+                   num_years_cutoff = 3,
+                   title_on = FALSE)
+
+makeTopSymbolPlots(sort_by = "yearfreq",
+                   input_data = compare_symbol_types_a, 
+                   input_suffix = "a", 
+                   corpus = "Academic", 
+                   symbol = "placeholder",
+                   consensus = 0.25,
+                   percentile = 0.5, 
                    num_years_cutoff = 3,
                    title_on = FALSE)
 
@@ -200,7 +210,17 @@ makeTopSymbolPlots(sort_by = "yearfreq",
                    corpus = "NGO", 
                    symbol = "buzzplace",
                    consensus = 0.5,
-                   percentile = 0.45,
+                   percentile = 0.5,
+                   num_years_cutoff = 2,
+                   title_on = FALSE)
+
+makeTopSymbolPlots(sort_by = "yearfreq",
+                   input_data = compare_symbol_types_n, 
+                   input_suffix = "n", 
+                   corpus = "NGO", 
+                   symbol = "placeholder",
+                   consensus = 0.5,
+                   percentile = 0.5,
                    num_years_cutoff = 2,
                    title_on = FALSE)
 
@@ -212,10 +232,19 @@ makeTopSymbolPlots(sort_by = "yearfreq",
                    corpus = "Media - NYT", 
                    symbol = "buzzplace",
                    consensus = 0.5,
-                   percentile = 0.45,
+                   percentile = 0.5,
                    num_years_cutoff = 3,
                    title_on = FALSE)
 
+makeTopSymbolPlots(sort_by = "yearfreq",
+                   input_data = compare_symbol_types_m_nyt, 
+                   input_suffix = "m_nyt_filt", 
+                   corpus = "Media - NYT", 
+                   symbol = "placeholder",
+                   consensus = 0.5,
+                   percentile = 0.5,
+                   num_years_cutoff = 3,
+                   title_on = FALSE)
 
 # ---- make top symbol plots just sorting by frequency only ----
 

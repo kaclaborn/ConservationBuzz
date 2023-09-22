@@ -177,10 +177,18 @@ example_buzzwords_list <-
                    validate_model_codes %>% select(doc_group, doc, code_long, segment, parent_code, child_code)) %>%
   filter(parent_code=="Examples" & child_code!="example context") %>%
   mutate(segment = tolower(segment),
-         segment = case_when(segment=="deij" | segment=="diversity, equity and inclusion" | segment=="dei" ~ "dei*",
+         segment = case_when(segment=="deij" | segment=="diversity, equity and inclusion" | segment=="dei" ~ "diversity",
                              segment=="sustainability" | segment=="sustainable" | 
-                               segment=="sustainable development" | segment=="sustainable materials"~ "sustainability*",
-                             segment=="anti-racism" | segment=="antiracist" ~ "anti-racism*", 
+                               segment=="sustainable development" | segment=="sustainable materials"~ "sustainable",
+                             segment=="anti-racism" | segment=="antiracist" ~ "anti-racism", 
+                             grepl("adapt", segment)==T ~ "adaptation",
+                             grepl("nature-based", segment)==T ~ "nature-based solution",
+                             grepl("indigenous", segment)==T ~ "indigenous people",
+                             grepl("crisis|crises", segment)==T ~ "crisis",
+                             grepl("smart", segment)==T ~ "climate smart",
+                             grepl("friendly", segment)==T ~ "eco-friendly",
+                             grepl("vulnerable", segment)==T ~ "vulnerable",
+                             grepl("empowerment", segment)==T ~ "empowerment",
                              TRUE ~ segment),
          segment = stringr::str_replace(segment, "solutions", "solution"),
          segment = stringr::str_replace(segment, "transformational", "transformative")) %>%
@@ -200,7 +208,28 @@ example_buzzwords_list <-
             prop_academia = n_academia/total_academia,
             prop_ngo = n_ngo/total_ngo,
             prop_policy = n_policy/total_policy,
-            prop_media = n_media/total_media)
+            prop_media = n_media/total_media) %>%
+  filter(segment!="one conservancy")
+
+example_buzzwords_list <- 
+  bind_rows(example_buzzwords_list,
+            example_buzzwords_list %>%
+              filter(segment=="diversity") %>%
+              mutate(segment = "equitable"),
+            example_buzzwords_list %>%
+              filter(segment=="diversity") %>%
+              mutate(segment = "inclusive")) %>%
+  arrange(segment)
+
+example_buzzwords <- c(example_buzzwords_list$segment, "adaptive", "equitable", "inclusive", "restore", "vulnerable")
+example_buzzwords <- example_buzzwords[! example_buzzwords %in% 
+                                         c("anti-racism", "anticipatory work", "battery belt", "bipartisan infrastructure law",
+                                           "critical race theory", "democratic workplace", "fake news", "disproportionately impacted community",
+                                           "vulnerable community", "woke", "pasture fed", "gluten free", "free range")]
+
+example_buzzwords_morethan1 <- c("sustainable", "biodiversity", "climate change", "nature-based solution", "diversity", "equitable", "inclusive",
+                                 "innovation", "transformative change", "adaptation", "green", "resilience", "climate smart", "crisis", "global warming",
+                                 "indigenous people", "natural climate solution", "nature positive", "net zero")
 
 plot_example_buzzwords <-
   example_buzzwords_list %>% 

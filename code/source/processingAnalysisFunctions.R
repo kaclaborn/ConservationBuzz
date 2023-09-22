@@ -23,15 +23,17 @@ subsetDTM <- function(dat, years, stopword_list) {
     
   
   # identify candidate collocations
-  collocations <- textstat_collocations(tokens, min_count = 5)
+  collocations <- textstat_collocations(tokens, min_count = 5) %>%
+    arrange(desc(collocation))
   
   if(length(collocations)>500) {
   collocations <- collocations[1:500, ]
   }
   
   tokens <- 
-    tokens_compound(tokens, collocations) %>%
-    tokens_remove(pattern = collocates_stopwords, padding = T)
+    tokens_compound(tokens, collocations)  %>%
+    tokens_remove(pattern = collocates_stopwords$bigram, padding = T)
+    
   
   
   # create DTM, prune vocabulary and set binary values for presence/absence of types
@@ -185,7 +187,11 @@ coocGraph3Tier <- function(dat, coocTerm, sd_multiplier, input_suffix) {
   resultGraph <- resultGraph %>%
     mutate(from = stringr::str_replace_all(from, "_", " "),
            to = stringr::str_replace_all(to, "_", " "),
-           sd_multiplier = sd_multiplier)
+           sd_multiplier = sd_multiplier) %>%
+    group_by(cooc, coocFreq, sig, sd_multiplier) %>%
+    summarise(from = from[1],
+              to = to[1]) %>%
+    select(from, to, sd_multiplier, cooc, coocFreq, sig)
 
   return(resultGraph)
 
@@ -282,16 +288,16 @@ coocGraphsPerYear <- function(input_data, input_suffix, sd_multiplier, years, co
 #     mutate(word = rownames(.))
 #   sigval <- mean(get_sigval$sig) + sd_multiplier*sd(get_sigval$sig)
 #   
-#   coocs <- data.frame(from = character(),
-#                       sig = numeric(0),
+#   coocs <- data.frame(sig = numeric(0),
+#                       from = character(),
 #                       to = character())
 #   
 #   for(i in 1:length(coocTerm)) {
 #     # Calculate statistics for coocTerm, keeping all terms that are significant at a pre-specified significance value
 #     coocs <- rbind.data.frame(coocs,
-#                               data.frame(from = coocTerm[i],
-#                                          sig = calculateCoocStatistics(coocTerm[i], dat, measure = "DICE")) %>%
-#                                 mutate(to = rownames(.)) %>%
+#                               data.frame(sig = calculateCoocStatistics(coocTerm[i], dat, measure = "DICE")) %>%
+#                                 mutate(from = coocTerm[i],
+#                                        to = rownames(.)) %>%
 #                                 filter(sig>=sigval))
 #     
 #   }
@@ -445,7 +451,7 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
     
     # get nodes and links per year i
     graph_attr <- coocGraph %>%
-      summarise(links = length(from)) %>%
+      summarise(links = length(cooc)) %>%
       cbind.data.frame(coocGraph %>% 
                          pivot_longer(cols = c(from, to)) %>% 
                          summarise(nodes = length(unique(value))))
@@ -486,7 +492,8 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
         left_join(nodeFreq, by = c("to" = "node")) %>%
         mutate(lower.freq = ifelse(freq.x<freq.y, freq.x, freq.y)) %>%
         mutate(consensus = ifelse(coocFreq/lower.freq>=j, 1, 0)) %>% # if co-occurrence exists at least XX% of the time the less frequent of the two nodes is used, counts as "consensus"
-        rename("node" = "from") %>%
+        pivot_longer(cols = c(from, to), values_to = "node", names_to = "from_to") %>%
+        select(-from_to) %>%
         group_by(node, sd_multiplier) %>%
         summarise(consensus = sum(consensus) / length(node),
                   num_links = length(node),
