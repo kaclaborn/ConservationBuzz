@@ -8,9 +8,10 @@
 # User-specific files
 .Ruserdata
 Initial_corpus/
-data/corpora
-data/outputs
-code/processing/.ipynb_checkpoints/
+data/corpora/*
+data/surveys/*
+data/outputs/*
+code/source/process/*
 
 # Example code in package build process
 *-Ex.R
