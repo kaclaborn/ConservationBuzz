@@ -85,10 +85,11 @@ docs_p <- read_csv("data/corpora/processed/docs_p.csv", locale = readr::locale(e
 
 docs_n %>% group_by(org_id) %>% summarise(doc_year = length(unique(year))) %>% ungroup() %>% summarise(sum = sum(doc_year))
 
+
 # ---- 2.3 Subset DTMs per year, create co-occurrence networks, and export to flat file ----
 ## COMPUTATIONALLY INTENSIVE -- ONLY RUN ONCE AND THEN SOURCE IN FLAT FILES TO DO ANALYSIS IN SECTION 3 AND BEYOND
 
-coocGraphsPerYear(input_data = docs_p, input_suffix = "p", years = c(2019, 2022), 
+coocGraphsPerYear(input_data = docs_a, input_suffix = "a", years = 2000:2021, 
                   sd_multiplier = 3, stopword_list = stopwords_extended$word,
                   coocTerm = "conservation",
                   n_cores = 1)
@@ -96,9 +97,9 @@ coocGraphsPerYear(input_data = docs_p, input_suffix = "p", years = c(2019, 2022)
 
  # ---- 2.4 Define node attributes per co-occurrence network, and compare across years ----
 
-findNodeAttributes(input_suffix = "p", 
-                   years = c(2019, 2022), 
-                   consensus_thresholds = c(0.5, 0.6, 0.7, 0.75), 
+findNodeAttributes(input_suffix = "a", 
+                   years = 2000:2021, 
+                   consensus_thresholds = c(0.25, 0.3, 0.4, 0.5), 
                    percentile_thresholds = c(0.35, 0.4, 0.45, 0.5),
                    coocTerm = "conservation", 
                    export = T)

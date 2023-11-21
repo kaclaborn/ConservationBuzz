@@ -51,8 +51,8 @@ words_a <-
   left_join(node_attributes_a %>% select(-freq), by = c("node", "year")) %>%
   rename("total_docs" = "ndoc") %>%
   mutate(rel_freq = freq / total_docs) %>%
-  filter((consensus_threshold==0.25 | is.na(consensus_threshold)) &  # filter consensus threshold to 0.25 for academic
-           (percentile_threshold==0.4 | is.na(percentile_threshold)))
+  filter((consensus_threshold==0.3 | is.na(consensus_threshold)) &  # filter consensus threshold to 0.25 for academic
+           (percentile_threshold==0.5 | is.na(percentile_threshold)))
 
 words_n <- 
   node_freq_n %>% 
@@ -61,7 +61,7 @@ words_n <-
   rename("total_docs" = "ndoc") %>%
   mutate(rel_freq = freq / total_docs) %>%
   filter((consensus_threshold==0.75 | is.na(consensus_threshold)) & # filter consensus threshold to 0.75 for ngo
-           (percentile_threshold==0.4 | is.na(percentile_threshold)))
+           (percentile_threshold==0.5 | is.na(percentile_threshold)))
 
 
 words_m <- 
@@ -72,7 +72,7 @@ words_m <-
   mutate(rel_freq = freq / total_docs,
          corpus = "media") %>%
   filter((consensus_threshold==0.5 | is.na(consensus_threshold)) & # filter consensus threshold to 0.5 for media
-           (percentile_threshold==0.4 | is.na(percentile_threshold)))
+           (percentile_threshold==0.5 | is.na(percentile_threshold)))
 
 
 words_p <- 
@@ -84,7 +84,7 @@ words_p <-
          corpus = case_when(year==2019 ~ "IPBES",
                             year==2022 ~ "UNCBD")) %>%
   filter((consensus_threshold==0.75 | is.na(consensus_threshold)) & # filter consensus threshold to 0.75 for policy
-           (percentile_threshold==0.4 | is.na(percentile_threshold)))
+           (percentile_threshold==0.5 | is.na(percentile_threshold)))
 
 words_all <- 
   words_a %>%
@@ -118,7 +118,9 @@ buzzwords_biggestchange <-
   arrange(year) %>%
   mutate(delta_freq = rel_freq - lag(rel_freq),
          year_before = lag(year)) %>%
-  summarise(max_delta = max(delta_freq, na.rm = T),
+  summarise(perc_change_delta_2021 = delta_freq[year==2021]/rel_freq[year==2020],
+            perc_change_delta_2020 = delta_freq[year==2020]/rel_freq[year==2019],
+            max_delta = max(delta_freq, na.rm = T),
             max_delta_year_lower = year_before[delta_freq==max_delta & !is.na(delta_freq)],
             max_delta_year_upper = year[delta_freq==max_delta & !is.na(delta_freq)],
             perc_change_max_delta = (rel_freq[year==max_delta_year_upper]-rel_freq[year==max_delta_year_lower])/rel_freq[year==max_delta_year_lower],
@@ -142,7 +144,8 @@ buzzwords_biggestchange <-
   ungroup() %>%
   group_by(corpus) %>%
   mutate(perc_change_percentile = percent_rank(perc_change_total)) %>%
-  filter(perc_change_percentile>=criteria_percentile)
+  filter(perc_change_delta_2021>0.5)
+
 
 
 # ---- 2.4 FOCAL WORD MEASURE 3: Most conductive ----
@@ -287,7 +290,7 @@ buzzword_focalwords <-
             most_placeholder_years = max(n_placeholder_years)[1],
             corpus_most_placeholder_years = paste0(unique(corpus_policy_consolidate[n_placeholder_years==most_placeholder_years]), collapse = ', '),
             criteria_recent = ifelse(most_recent_year>=2021, 1, 0),
-            criteria_longspan = ifelse(max(longest_span)>1, 1, 0),
+            criteria_longspan = ifelse(max(longest_span)>2, 1, 0),
             criteria_spaninstitutions = ifelse(n_corpora>1, 1, 0),
             criteria_freq = ifelse(max(criteria_freq)==1, 1, 0),
             criteria_cond = ifelse(max(criteria_cond)==1, 1, 0),
@@ -307,7 +310,7 @@ ubiquitous <- buzzword_focalwords %>% filter(ubiquitous==3) %>%
          n_corpora = factor(n_corpora, levels = c("1", "2", "3", "4")))
 
 trending <- buzzword_focalwords %>% filter(trending==2) %>% 
-  left_join(buzzwords_biggestchange %>% group_by(node) %>% summarise(max_perc_change = max(perc_change_total))) %>%
+  left_join(buzzwords_biggestchange %>% group_by(node) %>% summarise(max_perc_change = max(perc_change_delta_2021))) %>%
   arrange(n_corpora, corpora_included) %>%
   mutate(corpora_included = factor(corpora_included, unique(corpora_included), ordered = T),
          n_corpora = factor(n_corpora, levels = c("1", "2", "3", "4")))
@@ -332,7 +335,8 @@ bridges_plot <-
   scale_x_continuous(expand = c(0, 0),
                      limits = c(0, 5.5),
                      breaks = seq(0, 5, by = 1)) +
-  labs(x = "Years as buzzword\n(within any single institution)", y = "", title = "Bridging Buzzwords") +
+  labs(x = "Years as buzzword\n(within any single institution)", y = "", title = "Bridging Buzzwords", 
+       subtitle = "Criteria: conductivity in 95th percentile") +
   focalword.plot.theme + theme(plot.margin = unit(c(1,0.1,0.1,0.1), "cm"),
                                legend.position = "bottom") + 
   guides(fill = guide_legend(ncol = 4, title.position = "left"))
@@ -341,28 +345,36 @@ ubiquitous_plot <-
   ubiquitous %>% arrange(max_rel_freq, desc(node)) %>% mutate(node = factor(node, levels = unique(node), ordered = T)) %>%
   ggplot() +
   geom_bar(aes(x = max_rel_freq, y = node, fill = n_corpora), stat = "identity") +
-  scale_fill_manual(values = c("#6699CC", "#332288", "#44AA99", "#CC6677"), 
-                    drop = FALSE,
-                    guide = "none") +
+  scale_fill_manual(name = "Number institution(s)\nidentified as a buzzword",
+                    values = c("#6699CC", "#332288", "#44AA99", "#CC6677"), 
+                    drop = FALSE) +
   scale_x_continuous(expand = c(0, 0),
-                     limits = c(0, 0.55),
+                     limits = c(0, 0.65),
                      breaks = seq(0, 0.5, by = 0.1)) +
-  labs(x = "Maximum relative document frequency\n(across all institutions and years)", y = "", title = "Ubiquitous Buzzwords") +
-  focalword.plot.theme + theme(plot.margin = unit(c(0.1,1,0.1,0.1), "cm"))
+  labs(x = "Maximum relative document frequency\n(across all institutions and years)", y = "", title = "Ubiquitous Buzzwords", 
+       subtitle = "Criteria: frequency in 95th percentile") +
+  focalword.plot.theme + theme(plot.margin = unit(c(0.1,1,0.1,0.1), "cm")) +
+  theme(plot.margin = unit(c(1,0.1,0.1,0.1), "cm"),
+        legend.position = "bottom") + 
+  guides(fill = guide_legend(ncol = 4, title.position = "left"))
 
 trending_plot <- 
   trending %>% arrange(max_perc_change, desc(node)) %>% mutate(node = factor(node, levels = unique(node), ordered = T)) %>%
   ggplot() +
   geom_bar(aes(x = max_perc_change, y = node, fill = n_corpora), stat = "identity") +
-  scale_fill_manual(values = c("#6699CC", "#332288", "#44AA99", "#CC6677"), 
-                    drop = FALSE,
-                    guide = "none") +
+  scale_fill_manual(name = "Number institution(s)\nidentified as a buzzword",
+                    values = c("#6699CC", "#332288", "#44AA99", "#CC6677"), 
+                    drop = FALSE) +
   scale_x_continuous(expand = c(0, 0),
                      labels = scales::percent_format(),
-                     limits = c(0, 3.5),
-                     breaks = seq(0, 3, by = 1)) +
-  labs(x = "Maximum percent change\n(within a single institution over 5-year period)", y = "", title = "Trending Buzzwords") +
-  focalword.plot.theme + theme(plot.margin = unit(c(0.1,1,0.1,0.1), "cm"))
+                     limits = c(0, 6.5),
+                     breaks = seq(0, 6, by = 1)) +
+  labs(x = "Maximum percent change between 2020 and 2021\n(within a single institution)", y = "", title = "Trending Buzzwords", 
+       subtitle = "Criteria: 50%+ increase between 2020-2021") +
+  focalword.plot.theme + theme(plot.margin = unit(c(0.1,1,0.1,0.1), "cm")) +
+  theme(plot.margin = unit(c(1,0.1,0.1,0.1), "cm"),
+        legend.position = "bottom") + 
+  guides(fill = guide_legend(ncol = 4, title.position = "left"))
 
 # arrange all three into one plot
 
@@ -389,26 +401,27 @@ three_types_arranged <-
 dir.create("data/outputs/figures/focal_words")
 output_dir <- "data/outputs/figures/focal_words/"
 
-png(paste(output_dir, "bridging.png", sep = ""),
-    units = "in", height = 9, width = 6, res = 400)
+png(paste(output_dir, "bridging_95perc_0.5t.png", sep = ""),
+    units = "in", height = 9.5, width = 6, res = 400)
 grid.newpage()
 grid.draw(bridges_plot)
 dev.off()
 
-png(paste(output_dir, "ubiquitous.png", sep = ""),
+png(paste(output_dir, "ubiquitous_95perc_0.5t.png", sep = ""),
     units = "in", height = 9, width = 7, res = 400)
 grid.newpage()
 grid.draw(ubiquitous_plot)
 dev.off()
 
-png(paste(output_dir, "trending.png", sep = ""),
+png(paste(output_dir, "trending_0.5delt_0.5t.png", sep = ""),
     units = "in", height = 9, width = 7, res = 400)
 grid.newpage()
 grid.draw(trending_plot)
 dev.off()
 
-png(paste(output_dir, "focal_buzzwords_threetype.png", sep = ""),
+png(paste(output_dir, "focal_buzzwords_threetype_95perc.png", sep = ""),
     units = "in", height = 13, width = 11, res = 400)
 grid.newpage()
 grid.draw(three_types_arranged)
 dev.off()
+

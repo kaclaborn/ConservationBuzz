@@ -27,17 +27,17 @@ source("code/source/plotThemes.R")
 
 node_attributes_a <- read_csv("data/outputs/node_attributes_a.csv")
 node_attributes_n <- read_csv("data/outputs/node_attributes_n.csv")
-node_attributes_m <- read_csv("data/outputs/node_attributes_m_nyt_filt.csv")
+node_attributes_m <- read_csv("data/outputs/node_attributes_m.csv")
 node_attributes_p <- read_csv("data/outputs/node_attributes_p.csv")
 
 node_freq_a <- read_csv("data/outputs/node_freq_a.csv")
 node_freq_n <- read_csv("data/outputs/node_freq_n.csv")
-node_freq_m <- read_csv("data/outputs/node_freq_m_nyt_filt.csv")
+node_freq_m <- read_csv("data/outputs/node_freq_m.csv")
 node_freq_p <- read_csv("data/outputs/node_freq_p.csv")
 
 graph_attr_a <- read_csv("data/outputs/graph_attr_a.csv")
 graph_attr_n <- read_csv("data/outputs/graph_attr_n.csv")
-graph_attr_m <- read_csv("data/outputs/graph_attr_m_nyt_filt.csv")
+graph_attr_m <- read_csv("data/outputs/graph_attr_m.csv")
 graph_attr_p <- read_csv("data/outputs/graph_attr_p.csv")
 
 
@@ -68,7 +68,7 @@ words_a <-
   rename("total_docs" = "ndoc") %>%
   mutate(rel_freq = freq / total_docs) %>%
   filter((consensus_threshold==0.25 | is.na(consensus_threshold)) &  # filter consensus threshold to 0.25 for academic
-           (percentile_threshold==0.4 | is.na(percentile_threshold)))
+           (percentile_threshold==0.5 | is.na(percentile_threshold)))
 
 words_n <- 
   node_freq_n %>% 
@@ -77,7 +77,7 @@ words_n <-
   rename("total_docs" = "ndoc") %>%
   mutate(rel_freq = freq / total_docs) %>%
   filter((consensus_threshold==0.75 | is.na(consensus_threshold)) & # filter consensus threshold to 0.75 for ngo
-           (percentile_threshold==0.4 | is.na(percentile_threshold)))
+           (percentile_threshold==0.5 | is.na(percentile_threshold)))
 
 
 words_m <- 
@@ -88,7 +88,7 @@ words_m <-
   mutate(rel_freq = freq / total_docs,
          corpus = "media") %>%
   filter((consensus_threshold==0.5 | is.na(consensus_threshold)) & # filter consensus threshold to 0.5 for media
-           (percentile_threshold==0.4 | is.na(percentile_threshold)))
+           (percentile_threshold==0.5 | is.na(percentile_threshold)))
 
 
 words_p <- 
@@ -100,13 +100,13 @@ words_p <-
          corpus = case_when(year==2019 ~ "IPBES",
                             year==2022 ~ "UNCBD")) %>%
   filter((consensus_threshold==0.75 | is.na(consensus_threshold)) & # filter consensus threshold to 0.75 for policy
-           (percentile_threshold==0.4 | is.na(percentile_threshold)))
+           (percentile_threshold==0.5 | is.na(percentile_threshold)))
 
 
 # ---- 2.2 Define focal word attributes table ----
 
 focalword_attributes <- 
-  words_a %>%
+  words_a %>% filter(year%in%2017:2021) %>%
   bind_rows(words_n) %>%
   bind_rows(words_m) %>%
   bind_rows(words_p %>% mutate(corpus = "policy")) %>%
@@ -244,8 +244,10 @@ PlotTrajectories_compareCorpora <- function(focal_word, data, upper_limit = 0.5,
                   mutate(label = ifelse(year==2019, "IPBES", "UNCBD")),
                 aes(x = year, y = rel_freq + 0.03, label = label),
                 size = 2.5) +
-      scale_shape_manual(values = c("buzzword" = 16, "not buzzword" = 1, "not classified" = 4)) +
-      scale_color_manual(values = fillcols.4categories) +
+      scale_shape_manual(values = c("buzzword" = 16, "not buzzword" = 1, "not classified" = 4),
+                         drop = F) +
+      scale_color_manual(values = fillcols.4categories,
+                         drop = F) +
       scale_x_continuous(expand = c(0, 0),
                          limits = c(2016.5, 2022.5),
                          breaks = seq(2017, 2022, by = 1)) +
@@ -307,7 +309,7 @@ PlotTrajectories_compareWords <- function(focal_corpus, words, data, upper_limit
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
 
-timeplot_example <- PlotTrajectories_compareCorpora("local", focalword_attributes, upper_limit = 0.6)
+timeplot_example <- PlotTrajectories_compareCorpora("context", focalword_attributes, upper_limit = 0.6)
 
 # ---- 4.1 Frequent buzzwords (in at least one corpus), comparing across corpora ----
 
@@ -323,10 +325,17 @@ timeplot_value <- PlotTrajectories_compareCorpora("value", focalword_attributes,
 timeplot_contribution <- PlotTrajectories_compareCorpora("contribution", focalword_attributes, upper_limit = 0.6)
 timeplot_hope <- PlotTrajectories_compareCorpora("hope", focalword_attributes, upper_limit = 0.6)
 timeplot_woman <- PlotTrajectories_compareCorpora("woman", focalword_attributes, upper_limit = 0.6)
+timeplot_indigenous <- PlotTrajectories_compareCorpora("indigenous", focalword_attributes, upper_limit = 0.6)
+timeplot_stakeholder <- PlotTrajectories_compareCorpora("stakeholder", focalword_attributes, upper_limit = 0.6)
+
 
 # trending buzzwords
-timeplot_stakeholder <- PlotTrajectories_compareCorpora("stakeholder", focalword_attributes, upper_limit = 0.6)
-timeplot_indigenous <- PlotTrajectories_compareCorpora("indigenous", focalword_attributes, upper_limit = 0.6)
+timeplot_movement <- PlotTrajectories_compareCorpora("movement", focalword_attributes, upper_limit = 0.6)
+timeplot_nature_based <- PlotTrajectories_compareCorpora("nature-based solution", focalword_attributes, upper_limit = 0.6)
+timeplot_climate_crisis <- PlotTrajectories_compareCorpora("climate crisis", focalword_attributes, upper_limit = 0.6)
+timeplot_adaptation <- PlotTrajectories_compareCorpora("adaptation", focalword_attributes, upper_limit = 0.6)
+timeplot_indigenous_people <- PlotTrajectories_compareCorpora("indigenous people", focalword_attributes, upper_limit = 0.6)
+timeplot_investment <- PlotTrajectories_compareCorpora("investment", focalword_attributes, upper_limit = 0.6)
 
 
 # More standard words, compare across corpora
@@ -349,12 +358,14 @@ timeplot_transformation <- PlotTrajectories_compareCorpora("transformation", foc
 timeplot_diversity <- PlotTrajectories_compareCorpora("diversity", focalword_attributes, legend = F, upper_limit = 0.3)
 # timeplot_equitable <- PlotTrajectories_compareCorpora("equitable", focalword_attributes, upper_limit = 0.3)
 timeplot_equity <- PlotTrajectories_compareCorpora("equity", focalword_attributes, legend = F, upper_limit = 0.3)
-timeplot_inclusive <- PlotTrajectories_compareCorpora("inclusive", focalword_attributes, legend = F, upper_limit = 0.3)
+timeplot_inclusive <- PlotTrajectories_compareCorpora("inclusive", focalword_attributes, legend = T, upper_limit = 0.3)
 
 timeplot_restoration <- PlotTrajectories_compareCorpora("restoration", focalword_attributes, upper_limit = 0.6)
 timeplot_innovation <- PlotTrajectories_compareCorpora("innovation", focalword_attributes, upper_limit = 0.3)
 timeplot_adaptation <- PlotTrajectories_compareCorpora("adaptation", focalword_attributes, upper_limit = 0.6)
 timeplot_climate_smart <- PlotTrajectories_compareCorpora("climate-smart", focalword_attributes, upper_limit = 0.6)
+timeplot_vulnerable <- PlotTrajectories_compareCorpora("vulnerable", focalword_attributes, upper_limit = 0.6)
+
 
 # doesn't show up at all 
 timeplot_nature_positive <- PlotTrajectories_compareCorpora("nature positive", focalword_attributes, upper_limit = 0.6)
@@ -362,8 +373,8 @@ timeplot_net_zero <- PlotTrajectories_compareCorpora("net zero", focalword_attri
 timeplot_extinction <- PlotTrajectories_compareCorpora("extinction", focalword_attributes, upper_limit = 0.6)
 timeplot_illegal <- PlotTrajectories_compareCorpora("illegal", focalword_attributes, upper_limit = 0.6)
 timeplot_deforestation <- PlotTrajectories_compareCorpora("deforestation", focalword_attributes, upper_limit = 0.6)
-timeplot_vulnerable <- PlotTrajectories_compareCorpora("vulnerable", focalword_attributes, upper_limit = 0.6)
 timeplot_woke <- PlotTrajectories_compareCorpora("woke", focalword_attributes, upper_limit = 0.6)
+timeplot_anthropocene <- PlotTrajectories_compareCorpora("anthropocene", focalword_attributes, upper_limit = 0.6)
 
 
 # Academic speak
@@ -371,6 +382,8 @@ timeplot_benefit <- PlotTrajectories_compareCorpora("benefit", focalword_attribu
 timeplot_framework <- PlotTrajectories_compareCorpora("framework", focalword_attributes, upper_limit = 0.8)
 timeplot_ecosystem_service <- PlotTrajectories_compareCorpora("ecosystem service", focalword_attributes, upper_limit = 0.6)
 timeplot_ecosystem <- PlotTrajectories_compareCorpora("ecosystem", focalword_attributes, upper_limit = 0.6)
+timeplot_anthropogenic <- PlotTrajectories_compareCorpora("anthropogenic", focalword_attributes, upper_limit = 0.6)
+
 
 # NGO speak
 timeplot_hope <- PlotTrajectories_compareCorpora("hope", focalword_attributes, upper_limit = 0.6)
@@ -397,7 +410,6 @@ timeplot_role <- PlotTrajectories_compareCorpora("role", focalword_attributes, u
 timeplot_nature_contribution <- PlotTrajectories_compareCorpora("nature contribution", focalword_attributes, upper_limit = 0.6)
 timeplot_contribution <- PlotTrajectories_compareCorpora("contribution", focalword_attributes, upper_limit = 0.6)
 timeplot_scenario <- PlotTrajectories_compareCorpora("scenario", focalword_attributes, upper_limit = 0.6)
-timeplot_indigenous_people <- PlotTrajectories_compareCorpora("indigenous people", focalword_attributes, upper_limit = 0.8)
 timeplot_governance <- PlotTrajectories_compareCorpora("governance", focalword_attributes, upper_limit = 0.6)
 
 # Media speak
@@ -428,10 +440,10 @@ grid.newpage()
 grid.draw(timeplot_dei_arranged)
 dev.off()
 
-png(paste(output_folder, "example.png", sep = ""),
+png(paste(output_folder, "stakeholder.png", sep = ""),
     units = "in", height = 4, width = 6, res = 400)
 grid.newpage()
-grid.draw(timeplot_example)
+grid.draw(timeplot_stakeholder)
 dev.off()
 
 

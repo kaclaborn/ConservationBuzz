@@ -78,18 +78,18 @@ add_to_stopwords <- c(# highly frequent proper nouns
                       
                       
                       # abbreviations & numbers (not removed through tokenization process)
-                      "μmol", "a2", "ca", "cm", "co2", "c4", "e.g", "es", "ess", "gi", "ha",  
-                      "î", "kg", "km", "km2", "lt", "n2", "o2", "pa", "ph", "r", 
+                      "--", "a.m", "μmol", "a2", "ca", "cm", "co2", "c4", "e.g", "es", "ess", "gi", "ha",  
+                      "î", "kg", "km", "km2", "la", "lt", "n2", "o2", "pa", "ph", "r", 
                       "-1", "-2", "-based", "000", "0-3", "1-2", "10", "10-13", "10-20", "10-30", 
                       "10-year", "100-year", "100-150", "12th", "13c", "15n", "1800s", "1830s", "1880s", "19", "19th",
-                      "1900s", "1920s", "1930s", "1940s", "1950s", "1960s", "1970s", "1980s", "1990s", 
+                      "1900s", "1920s", "1930s", "1940s", "1950s", "1960s", "1970s", "1980s", "1990s", "2000s",
                       "1980-2000", "1988-1991", "1994-1995", "1995-1998", "1995-2000", "1996-1998", 
                       "1996-1999", "1997-1998", "1997-1999", "1998-1999", "1998-2000", "1998-2001", "2000-2001",
                       "2017-2018", "2018-", "2020-2021", "2020-2030", "2o", "2", "2-3", "2-4", "2-5", "2-9", 
                       "20", "20-30", "20-25", "20-40", "200b", "2-year", "20th", "21st",
                       "3", "3-4", "3-5", "3-7", "3d", "30-40", "30-50", "30-70", "30-year", 
                       "4", "4-10", "4-year", "40-50", "5", "5-8", "5-10", "5-11", "5-year", "6", 
-                      "6-10", "6years", "6-year", "70th", "8-month", "9-year", "mr", "ms", "mrs", "dr"
+                      "6-10", "6years", "6-year", "70th", "80s", "8-month", "9-year", "mr", "ms", "mrs", "dr", "co-author"
                       ) 
 
 
@@ -100,7 +100,8 @@ stopwords_extended <- data.frame(word = c(scan("code/source/stopwords_extended_p
 stopwords_basic <- data.frame(word = stopwords::stopwords(source = "smart"), stopword = 1)
 
 # collocates stopword list
-collocates_stopwords <- data.frame(bigram = c("birdlife international", "birdlife partner", "conservation international",
-                                              "nature conservancy", "david shepherd wildlife foundation", "david shepherd", 
-                                              "world wildlife fund", "wetlands international", "unite state"),
+collocates_stopwords <- data.frame(bigram = c("birdlife_international", "birdlife_partner", "conservation_international",
+                                              "nature_conservancy", "david_shepherd_wildlife_foundation", "david_shepherd", 
+                                              "world_wildlife_fund", "wetlands_international", "unite_state", "york_time", 
+                                              "environment_forward", "4_term", "7_year", "complete_version"),
                                    stopword = 1)

@@ -233,6 +233,11 @@ example_buzzwords_morethan1 <- c("sustainable", "biodiversity", "climate change"
 
 plot_example_buzzwords <-
   example_buzzwords_list %>% 
+  mutate(segment = case_when(segment=="diversity" ~ "dei*",
+                             segment=="sustainable" ~ "sustainability*",
+                             segment=="anti-racism" ~ "anti-racism*",
+                             segment=="indigenous people" ~ "indigenous*",
+                             TRUE ~ segment)) %>%
   filter(n_total>1) %>%
   arrange(n_total, desc(segment)) %>%
   mutate(segment = factor(segment, levels = unique(segment), ordered = T)) %>%
@@ -250,7 +255,7 @@ plot_example_buzzwords <-
 
 plot_example_buzzwords_arranged <-
   grid.arrange(plot_example_buzzwords,
-               bottom = textGrob("*Includes other versions or conjugations of the word (e.g., 'sustainable', 'diversity, equity, and inclusion', 'anti-racist')",
+               bottom = textGrob("*Includes other versions or conjugations of the word (e.g., 'sustainable', 'diversity, equity, and inclusion', 'anti-racist', 'indigenous people')",
                                  hjust = 0.5,
                                  gp = gpar(fontsize = 11)))
 

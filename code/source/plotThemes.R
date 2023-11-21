@@ -32,7 +32,7 @@ focalword.plot.theme <-
   theme(plot.title = element_text(size = 16,
                                   colour = "#303030",
                                   face = "bold"),
-        plot.subtitle = element_text(size = 11,
+        plot.subtitle = element_text(size = 10,
                                      colour = "#303030", 
                                      face = "italic"),
         axis.ticks.x = element_line(colour = "#C0C0C0"),
