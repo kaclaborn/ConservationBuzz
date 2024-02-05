@@ -493,9 +493,11 @@ findNodeAttributes <- function(input_suffix, years, consensus_thresholds, percen
         mutate(lower.freq = ifelse(freq.x<freq.y, freq.x, freq.y)) %>%
         mutate(consensus = ifelse(coocFreq/lower.freq>=j, 1, 0)) %>% # if co-occurrence exists at least XX% of the time the less frequent of the two nodes is used, counts as "consensus"
         pivot_longer(cols = c(from, to), values_to = "node", names_to = "from_to") %>%
-        select(-from_to) %>%
+        # select(-from_to) %>%
         group_by(node, sd_multiplier) %>%
-        summarise(consensus = sum(consensus) / length(node),
+        summarise(central_node = case_when(length(node[from_to=="from"])==0 ~ 0, # if the word was ever in the "from" position, then it had all significant co-occurrences identified for it and is considered a central node in the network
+                                           TRUE ~ 1),
+                  consensus = sum(consensus) / length(node),
                   num_links = length(node),
                   consensus_threshold = j) %>%
         left_join(nodeFreq, by = "node") %>%

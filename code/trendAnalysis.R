@@ -59,78 +59,78 @@ graph_attr_p <- read_csv("data/outputs/graph_attr_p.csv")
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
 
-# ---- 2.1 Join word count and node attribute data for each corpus ----
-
-words_a <- 
-  node_freq_a %>% 
-  left_join(graph_attr_a, by = "year") %>%
-  left_join(node_attributes_a %>% select(-freq), by = c("node", "year")) %>%
-  rename("total_docs" = "ndoc") %>%
-  mutate(rel_freq = freq / total_docs) %>%
-  filter((consensus_threshold==0.25 | is.na(consensus_threshold)) &  # filter consensus threshold to 0.25 for academic
-           (percentile_threshold==0.5 | is.na(percentile_threshold)))
-
-words_n <- 
-  node_freq_n %>% 
-  left_join(graph_attr_n, by = "year") %>%
-  left_join(node_attributes_n %>% select(-freq), by = c("node", "year")) %>%
-  rename("total_docs" = "ndoc") %>%
-  mutate(rel_freq = freq / total_docs) %>%
-  filter((consensus_threshold==0.75 | is.na(consensus_threshold)) & # filter consensus threshold to 0.75 for ngo
-           (percentile_threshold==0.5 | is.na(percentile_threshold)))
-
-
-words_m <- 
-  node_freq_m %>% 
-  left_join(graph_attr_m, by = "year") %>%
-  left_join(node_attributes_m %>% select(-freq), by = c("node", "year")) %>%
-  rename("total_docs" = "ndoc") %>%
-  mutate(rel_freq = freq / total_docs,
-         corpus = "media") %>%
-  filter((consensus_threshold==0.5 | is.na(consensus_threshold)) & # filter consensus threshold to 0.5 for media
-           (percentile_threshold==0.5 | is.na(percentile_threshold)))
-
-
-words_p <- 
-  node_freq_p %>% 
-  left_join(graph_attr_p, by = "year") %>%
-  left_join(node_attributes_p %>% select(-freq), by = c("node", "year")) %>%
-  rename("total_docs" = "ndoc") %>%
-  mutate(rel_freq = freq / total_docs,
-         corpus = case_when(year==2019 ~ "IPBES",
-                            year==2022 ~ "UNCBD")) %>%
-  filter((consensus_threshold==0.75 | is.na(consensus_threshold)) & # filter consensus threshold to 0.75 for policy
-           (percentile_threshold==0.5 | is.na(percentile_threshold)))
-
-
-# ---- 2.2 Define focal word attributes table ----
-
-focalword_attributes <- 
-  words_a %>% filter(year%in%2017:2021) %>%
-  bind_rows(words_n) %>%
-  bind_rows(words_m) %>%
-  bind_rows(words_p %>% mutate(corpus = "policy")) %>%
-  select(node, year, corpus, freq, rel_freq, total_docs, consensus, conductivity, degree, symbol_type, 
-         sd_multiplier, percentile_threshold, consensus_threshold) %>%
-  mutate(shapetype = case_when(symbol_type=="placeholder" ~ "buzzword", 
-                               symbol_type%in%c("standard", "ordinary", "emblem", 
-                                                "stereotype", "allusion", "factoid", "buzzword") ~ "not buzzword",
-                               TRUE ~ "not classified"),
-         shapetype = factor(shapetype, levels = c("buzzword", "not buzzword", "not classified"),
-                            ordered = T),
-         # shapetype = case_when(symbol_type%in%c("buzzword", "placeholder") ~ "buzzword/placeholder", 
-         #                     symbol_type=="standard" ~ "standard",
-         #                     symbol_type=="ordinary" ~ "ordinary",
-         #                     symbol_type%in%c("emblem", "stereotype") ~ "emblem/stereotype",
-         #                     symbol_type%in%c("allusion", "factoid") ~ "allusion/factoid",
-         #                     TRUE ~ "not classified"),
-         # shapetype = factor(shapetype, levels = c("buzzword/placeholder", "standard",
-         #                                          "emblem/stereotype", "allusion/factoid",
-         #                                          "ordinary", "not classified"),
-         #                    ordered = T),
-         # shapesize = case_when(shapetype=="buzzword/placeholder" ~ "big",
-         #                       TRUE ~ "small"),
-         corpus = factor(corpus, levels = unique(corpus)))
+# # ---- 2.1 Join word count and node attribute data for each corpus ----
+# 
+# words_a <- 
+#   node_freq_a %>% 
+#   left_join(graph_attr_a, by = "year") %>%
+#   left_join(node_attributes_a %>% select(-freq), by = c("node", "year")) %>%
+#   rename("total_docs" = "ndoc") %>%
+#   mutate(rel_freq = freq / total_docs) %>%
+#   filter((consensus_threshold==0.25 | is.na(consensus_threshold)) &  # filter consensus threshold to 0.25 for academic
+#            (percentile_threshold==0.5 | is.na(percentile_threshold)))
+# 
+# words_n <- 
+#   node_freq_n %>% 
+#   left_join(graph_attr_n, by = "year") %>%
+#   left_join(node_attributes_n %>% select(-freq), by = c("node", "year")) %>%
+#   rename("total_docs" = "ndoc") %>%
+#   mutate(rel_freq = freq / total_docs) %>%
+#   filter((consensus_threshold==0.75 | is.na(consensus_threshold)) & # filter consensus threshold to 0.75 for ngo
+#            (percentile_threshold==0.5 | is.na(percentile_threshold)))
+# 
+# 
+# words_m <- 
+#   node_freq_m %>% 
+#   left_join(graph_attr_m, by = "year") %>%
+#   left_join(node_attributes_m %>% select(-freq), by = c("node", "year")) %>%
+#   rename("total_docs" = "ndoc") %>%
+#   mutate(rel_freq = freq / total_docs,
+#          corpus = "media") %>%
+#   filter((consensus_threshold==0.5 | is.na(consensus_threshold)) & # filter consensus threshold to 0.5 for media
+#            (percentile_threshold==0.5 | is.na(percentile_threshold)))
+# 
+# 
+# words_p <- 
+#   node_freq_p %>% 
+#   left_join(graph_attr_p, by = "year") %>%
+#   left_join(node_attributes_p %>% select(-freq), by = c("node", "year")) %>%
+#   rename("total_docs" = "ndoc") %>%
+#   mutate(rel_freq = freq / total_docs,
+#          corpus = case_when(year==2019 ~ "IPBES",
+#                             year==2022 ~ "UNCBD")) %>%
+#   filter((consensus_threshold==0.75 | is.na(consensus_threshold)) & # filter consensus threshold to 0.75 for policy
+#            (percentile_threshold==0.5 | is.na(percentile_threshold)))
+# 
+# 
+# # ---- 2.2 Define focal word attributes table ----
+# 
+# focalword_attributes <- 
+#   words_a %>% filter(year%in%2017:2021) %>%
+#   bind_rows(words_n) %>%
+#   bind_rows(words_m) %>%
+#   bind_rows(words_p %>% mutate(corpus = "policy")) %>%
+#   select(node, year, corpus, freq, rel_freq, total_docs, consensus, conductivity, degree, symbol_type, 
+#          sd_multiplier, percentile_threshold, consensus_threshold) %>%
+#   mutate(shapetype = case_when(symbol_type=="placeholder" ~ "buzzword", 
+#                                symbol_type%in%c("standard", "ordinary", "emblem", 
+#                                                 "stereotype", "allusion", "factoid", "buzzword") ~ "not buzzword",
+#                                TRUE ~ "not classified"),
+#          shapetype = factor(shapetype, levels = c("buzzword", "not buzzword", "not classified"),
+#                             ordered = T),
+#          # shapetype = case_when(symbol_type%in%c("buzzword", "placeholder") ~ "buzzword/placeholder", 
+#          #                     symbol_type=="standard" ~ "standard",
+#          #                     symbol_type=="ordinary" ~ "ordinary",
+#          #                     symbol_type%in%c("emblem", "stereotype") ~ "emblem/stereotype",
+#          #                     symbol_type%in%c("allusion", "factoid") ~ "allusion/factoid",
+#          #                     TRUE ~ "not classified"),
+#          # shapetype = factor(shapetype, levels = c("buzzword/placeholder", "standard",
+#          #                                          "emblem/stereotype", "allusion/factoid",
+#          #                                          "ordinary", "not classified"),
+#          #                    ordered = T),
+#          # shapesize = case_when(shapetype=="buzzword/placeholder" ~ "big",
+#          #                       TRUE ~ "small"),
+#          corpus = factor(corpus, levels = unique(corpus)))
 
 
 focalwords_acrosscorpora <-
@@ -313,7 +313,7 @@ timeplot_example <- PlotTrajectories_compareCorpora("context", focalword_attribu
 
 # ---- 4.1 Frequent buzzwords (in at least one corpus), comparing across corpora ----
 
-timeplot_biodiversity <- PlotTrajectories_compareCorpora("biodiversity", focalword_attributes, upper_limit = 0.6)
+timeplot_biodiversity <- PlotTrajectories_compareCorpora("biodiversity", word_attributes, upper_limit = 0.6)
 timeplot_landscape <- PlotTrajectories_compareCorpora("landscape", focalword_attributes, upper_limit = 0.6)
 timeplot_local <- PlotTrajectories_compareCorpora("local", focalword_attributes, upper_limit = 0.6)
 timeplot_community <- PlotTrajectories_compareCorpora("community", focalword_attributes, upper_limit = 0.8)

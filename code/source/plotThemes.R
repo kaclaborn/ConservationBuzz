@@ -29,10 +29,10 @@ lollipop.plot.theme <-
                                  lineheight = 0.7))
 
 focalword.plot.theme <- 
-  theme(plot.title = element_text(size = 16,
+  theme(plot.title = element_text(size = 18,
                                   colour = "#303030",
                                   face = "bold"),
-        plot.subtitle = element_text(size = 10,
+        plot.subtitle = element_text(size = 12,
                                      colour = "#303030", 
                                      face = "italic"),
         axis.ticks.x = element_line(colour = "#C0C0C0"),
@@ -57,7 +57,7 @@ focalword.plot.theme <-
 
 
 time.plot.theme <- 
-  theme(plot.title = element_text(size = 14,
+  theme(plot.title = element_text(size = 16,
                                   colour = "#303030",
                                   face = "bold"),
         plot.subtitle = element_text(size = 10,
@@ -74,11 +74,11 @@ time.plot.theme <-
                                           linewidth = 0.35),
         panel.grid.major.x = element_blank(),
         plot.margin = margin(t = 5, r = 20, b = 5, l = 5, unit = "pt"),
-        axis.title = element_text(size = 10,
+        axis.title = element_text(size = 12,
                                   angle = 0,
                                   face = "bold",
                                   colour = "#303030"),
-        axis.text = element_text(size = 10,
+        axis.text = element_text(size = 12,
                                  angle = 0,
                                  colour = "#303030",
                                  lineheight = 0.7))

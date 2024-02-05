@@ -97,9 +97,9 @@ coocGraphsPerYear(input_data = docs_a, input_suffix = "a", years = 2000:2021,
 
  # ---- 2.4 Define node attributes per co-occurrence network, and compare across years ----
 
-findNodeAttributes(input_suffix = "a", 
-                   years = 2000:2021, 
-                   consensus_thresholds = c(0.25, 0.3, 0.4, 0.5), 
+findNodeAttributes(input_suffix = "p", 
+                   years = c(2019, 2022), 
+                   consensus_thresholds = c(0.7, 0.75, 0.8, 0.85), 
                    percentile_thresholds = c(0.35, 0.4, 0.45, 0.5),
                    coocTerm = "conservation", 
                    export = T)
@@ -118,17 +118,17 @@ findNodeAttributes(input_suffix = "a",
 
 node_attributes_a <- read_csv("data/outputs/node_attributes_a.csv")
 node_attributes_n <- read_csv("data/outputs/node_attributes_n.csv")
-node_attributes_m_nyt_filt <- read_csv("data/outputs/node_attributes_m_nyt_filt.csv")
+node_attributes_m <- read_csv("data/outputs/node_attributes_m.csv")
 node_attributes_p <- read_csv("data/outputs/node_attributes_p.csv")
 
 node_freq_a <- read_csv("data/outputs/node_freq_a.csv")
 node_freq_n <- read_csv("data/outputs/node_freq_n.csv")
-node_freq_m_nyt_filt <- read_csv("data/outputs/node_freq_m_nyt_filt.csv")
+node_freq_m <- read_csv("data/outputs/node_freq_m.csv")
 node_freq_p <- read_csv("data/outputs/node_freq_p.csv")
 
 graph_attr_a <- read_csv("data/outputs/graph_attr_a.csv")
 graph_attr_n <- read_csv("data/outputs/graph_attr_n.csv")
-graph_attr_m_nyt_filt <- read_csv("data/outputs/graph_attr_m_nyt_filt.csv")
+graph_attr_m <- read_csv("data/outputs/graph_attr_m.csv")
 graph_attr_p <- read_csv("data/outputs/graph_attr_p.csv")
 
 
@@ -181,11 +181,11 @@ compare_symbol_types_n <-
               names_from = year, values_from = c(symbol_type, freq, rel_freq, conductivity, consensus, degree, 
                                                  consensus_percentile, conductivity_percentile))
 
-compare_symbol_types_m_nyt <-
-  node_attributes_m_nyt_filt %>% 
+compare_symbol_types_m <-
+  node_attributes_m %>% 
   select(-freq) %>%
-  left_join(graph_attr_m_nyt_filt, by = "year") %>%
-  left_join(node_freq_m_nyt_filt, by = c("node", "year")) %>%
+  left_join(graph_attr_m, by = "year") %>%
+  left_join(node_freq_m, by = c("node", "year")) %>%
   rename("total_docs" = "ndoc") %>%
   mutate(rel_freq = freq / total_docs) %>%
   group_by(node, consensus_threshold, percentile_threshold) %>%
@@ -329,80 +329,3 @@ place_and_buzz_n_c0.5_t0.5 <-
   rowwise() %>%
   mutate(place_buzz_years = sum(c_across(c(buzzword_years_2017_2021, placeholder_years_2017_2021)))) %>%
   arrange(desc(place_buzz_years))
-
-
-# institution-level averages (network measures, prop different word types, etc.)
-
-network_avgs_a <-
-  years_compare_a %>% 
-  filter(percentile_threshold==0.5) %>% 
-  ungroup() %>%
-  summarise(avg_degree = mean(avg_degree),
-            avg_conductivity = mean(avg_conductivity),
-            avg_consensus = mean(avg_consensus),
-            avg_nodes = mean(n_nodes),
-            avg_prop_placeholders = mean(n_placeholders) / avg_nodes)
-
-avg_placeholder_length_a <-
-  node_attributes_a %>%
-  filter(consensus_threshold==0.25 & percentile_threshold==0.5 & symbol_type=="placeholder" & year%in%c(2017:2021)) %>%
-  group_by(node) %>%
-  summarise(n_years_placeholder = length(node)) %>%
-  ungroup() %>%
-  summarise(avg_years_placeholder = mean(n_years_placeholder),
-            n_placeholders = length(node))
-  
-
-network_avgs_n <-
-  years_compare_n %>% 
-  filter(percentile_threshold==0.5) %>% 
-  ungroup() %>%
-  summarise(avg_degree = mean(avg_degree),
-            avg_conductivity = mean(avg_conductivity),
-            avg_consensus = mean(avg_consensus),
-            avg_nodes = mean(n_nodes),
-            avg_prop_placeholders = mean(n_placeholders) / avg_nodes)
-
-avg_placeholder_length_n <-
-  node_attributes_n %>%
-  filter(consensus_threshold==0.5 & percentile_threshold==0.5 & symbol_type=="placeholder") %>%
-  group_by(node) %>%
-  summarise(n_years_placeholder = length(node)) %>%
-  ungroup() %>%
-  summarise(avg_years_placeholder = mean(n_years_placeholder),
-            n_placeholders = length(node))
-
-network_avgs_m <-
-  years_compare_m_nyt_filt %>% 
-  filter(percentile_threshold==0.5 & !is.na(year)) %>% 
-  ungroup() %>%
-  summarise(avg_degree = mean(avg_degree),
-            avg_conductivity = mean(avg_conductivity),
-            avg_consensus = mean(avg_consensus),
-            avg_nodes = mean(n_nodes),
-            avg_prop_placeholders = mean(n_placeholders) / avg_nodes)
-
-avg_placeholder_length_m <-
-  node_attributes_m_nyt_filt %>%
-  filter(consensus_threshold==0.5 & percentile_threshold==0.5 & symbol_type=="placeholder") %>%
-  group_by(node) %>%
-  summarise(n_years_placeholder = length(node)) %>%
-  ungroup() %>%
-  summarise(avg_years_placeholder = mean(n_years_placeholder),
-            n_placeholders = length(node))
-
-network_avgs_p <-
-  years_compare_p %>% 
-  filter(percentile_threshold==0.5) %>% 
-  summarise(avg_degree = mean(avg_degree),
-            avg_conductivity = mean(avg_conductivity),
-            avg_consensus = mean(avg_consensus),
-            avg_nodes = mean(n_nodes),
-            avg_prop_placeholders = mean(n_placeholders) / avg_nodes)
-
-n_placeholders_p <-
-  node_attributes_p %>%
-  filter(consensus_threshold==0.75 & percentile_threshold==0.5 & symbol_type=="placeholder") %>%
-  group_by(year) %>%
-  summarise(n_placeholders = length(node))
-

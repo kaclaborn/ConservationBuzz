@@ -164,6 +164,24 @@ prop_unprompted_across_full_interview <-
             n_context4 = length(unique(doc[subcode_context==context4 & !is.na(subcode_context)])),
             prop_context4 = n_context4/17)
 
+prop_cultural_or_appearances <-
+  validate_model_codes %>%
+  bind_rows(open_ended_codes) %>%
+  filter((parent_code=="Characteristics" | parent_code=="Uses") &
+           (grepl("suggestion", child_subcode, ignore.case = T) | 
+              doc_group=="Open-ended")) %>% 
+  mutate(subcode_context = ifelse(doc_group=="Open-ended", child_subcode, subcode_context)) %>%
+  select(doc, parent_code, child_code, subcode_context) %>%
+  distinct() %>%
+  mutate(group_appearances = case_when(child_code%in%c("group identity, differentiate", "culturally relevant") ~ 1,
+                                             TRUE ~ 0)) %>%
+  group_by(doc) %>%
+  summarise(group_or_appearances = case_when(sum(group_appearances)>0 ~ 1,
+                                             TRUE ~ 0)) %>%
+  ungroup() %>%
+  summarise(prop = sum(group_or_appearances)/17)
+
+
 # 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
